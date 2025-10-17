@@ -32,14 +32,13 @@ RUN pip install --upgrade pip && \
 # Copy project files
 COPY . /app/
 
-# Collect static files
-RUN python manage.py collectstatic --noinput
-
-# Create media directory
-RUN mkdir -p /app/media
+# Create media and static directories
+RUN mkdir -p /app/media /app/staticfiles
 
 # Expose port
 EXPOSE 8000
 
-# Run gunicorn
-CMD ["gunicorn", "--bind", "0.0.0.0:8000", "--workers", "2", "housing_analyzer.wsgi:application"]
+# Run migrations and collect static files, then start gunicorn
+CMD python manage.py migrate && \
+    python manage.py collectstatic --noinput && \
+    gunicorn --bind 0.0.0.0:8000 --workers 2 housing_analyzer.wsgi:application
