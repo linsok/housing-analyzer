@@ -1,0 +1,36 @@
+services:
+  # Django Web Service
+  - type: web
+    name: housing-analyzer
+    runtime: python
+    plan: free
+    buildCommand: "./build.sh"
+    startCommand: "gunicorn housing_analyzer.wsgi:application"
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.0
+      - key: SECRET_KEY
+        generateValue: true
+      - key: DEBUG
+        value: False
+      - key: ALLOWED_HOSTS
+        sync: false
+      - key: CORS_ALLOWED_ORIGINS
+        sync: false
+      - key: DATABASE_URL
+        fromDatabase:
+          name: housing-analyzer-db
+          property: connectionString
+      - key: STRIPE_PUBLIC_KEY
+        sync: false
+      - key: STRIPE_SECRET_KEY
+        sync: false
+      - key: GOOGLE_MAPS_API_KEY
+        sync: false
+
+databases:
+  # PostgreSQL Database
+  - name: housing-analyzer-db
+    plan: free
+    databaseName: housing_analyzer
+    user: housing_analyzer
