@@ -8,19 +8,11 @@ ENV PYTHONUNBUFFERED=1
 # Set work directory
 WORKDIR /app
 
-# Install system dependencies for MSSQL and other packages
+# Install system dependencies (PostgreSQL client and build tools)
 RUN apt-get update && apt-get install -y \
-    curl \
-    apt-transport-https \
-    gnupg \
-    unixodbc \
-    unixodbc-dev \
     gcc \
     g++ \
-    && curl https://packages.microsoft.com/keys/microsoft.asc | apt-key add - \
-    && curl https://packages.microsoft.com/config/debian/11/prod.list > /etc/apt/sources.list.d/mssql-release.list \
-    && apt-get update \
-    && ACCEPT_EULA=Y apt-get install -y msodbcsql17 \
+    libpq-dev \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
