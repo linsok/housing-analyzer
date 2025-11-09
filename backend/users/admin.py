@@ -2,6 +2,14 @@ from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from .models import User, UserPreference
 
+# Import admin class after models to avoid circular imports
+from .admin_evaluation import OwnerEvaluationAdmin
+from .models_evaluation import OwnerEvaluation
+
+# Register your models here.
+# Register OwnerEvaluation with custom admin
+if OwnerEvaluation not in admin.site._registry:
+    admin.site.register(OwnerEvaluation, OwnerEvaluationAdmin)
 
 @admin.register(User)
 class UserAdmin(BaseUserAdmin):

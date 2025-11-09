@@ -7,10 +7,10 @@ export const useAuthStore = create((set) => ({
   loading: false,
   error: null,
 
-  login: async (username, password) => {
+  login: async (email, password) => {
     set({ loading: true, error: null });
     try {
-      const user = await authService.login(username, password);
+      const user = await authService.login(email, password);
       set({ user, isAuthenticated: true, loading: false });
       return user;
     } catch (error) {

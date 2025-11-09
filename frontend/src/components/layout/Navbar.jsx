@@ -188,15 +188,13 @@ const Navbar = () => {
               Home
             </Link>
             
-            {user?.role !== 'admin' && (
-              <Link
-                to="/properties"
-                className="block px-4 py-2 text-gray-700 hover:bg-gray-100 rounded"
-                onClick={() => setMobileMenuOpen(false)}
-              >
-                Rent
-              </Link>
-            )}
+            <Link
+              to="/properties"
+              className="block px-4 py-2 text-gray-700 hover:bg-gray-100 rounded"
+              onClick={() => setMobileMenuOpen(false)}
+            >
+              Rent
+            </Link>
             
             <Link
               to="/market-trend"

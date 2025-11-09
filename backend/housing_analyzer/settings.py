@@ -41,6 +41,7 @@ INSTALLED_APPS = [
     'analytics',
     'payments',
     'reviews',
+    'custom_admin.apps.CustomAdminConfig',  # Custom admin theme
 ]
 
 MIDDLEWARE = [
@@ -60,7 +61,7 @@ ROOT_URLCONF = 'housing_analyzer.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],
+        'DIRS': [os.path.join(BASE_DIR, 'templates')],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -76,53 +77,25 @@ TEMPLATES = [
 WSGI_APPLICATION = 'housing_analyzer.wsgi.application'
 
 # Database Configuration
-# Choose your database by uncommenting the appropriate section
-
-# Check if DATABASE_URL is set (for Fly.io or other cloud platforms)
-DATABASE_URL = config('DATABASE_URL', default=None)
-
-if DATABASE_URL:
-    # Use DATABASE_URL for production (PostgreSQL on Fly.io)
-    DATABASES = {
-        'default': dj_database_url.config(
-            default=DATABASE_URL,
-            conn_max_age=600,
-            conn_health_checks=True,
-        )
+# MySQL Database Configuration
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.mysql',
+        'NAME': 'housing_analyzer',  # Database name
+        'USER': 'root',             # MySQL username
+        'PASSWORD': 'Soklin0976193630',  # MySQL password
+        'HOST': 'localhost',        # Database host
+        'PORT': '3306',             # MySQL port (default is 3306)
+        'OPTIONS': {
+            'init_command': "SET sql_mode='STRICT_TRANS_TABLES'",
+            'charset': 'utf8mb4',
+        },
+        'TEST': {
+            'CHARSET': 'utf8mb4',
+            'COLLATION': 'utf8mb4_unicode_ci',
+        }
     }
-else:
-    # Option 1: SQL Server (Recommended for local development)
-    # Supports both Windows Authentication and SQL Server Authentication
-    USE_WINDOWS_AUTH = config('USE_WINDOWS_AUTH', default=False, cast=bool)
-
-    if USE_WINDOWS_AUTH:
-        # Windows Authentication (No password needed)
-        DATABASES = {
-            'default': {
-                'ENGINE': 'mssql',
-                'NAME': config('DB_NAME', default='housing_analyzer'),
-                'HOST': config('DB_HOST', default='localhost\\SQLEXPRESS'),
-                'OPTIONS': {
-                    'driver': 'ODBC Driver 17 for SQL Server',
-                    'trusted_connection': 'yes',
-                },
-            }
-        }
-    else:
-        # SQL Server Authentication (Username and Password)
-        DATABASES = {
-            'default': {
-                'ENGINE': 'mssql',
-                'NAME': config('DB_NAME', default='housing_analyzer'),
-                'USER': config('DB_USER', default='sa'),
-                'PASSWORD': config('DB_PASSWORD', default=''),
-                'HOST': config('DB_HOST', default='localhost\\SQLEXPRESS'),
-                'PORT': config('DB_PORT', default='1433'),
-                'OPTIONS': {
-                    'driver': 'ODBC Driver 17 for SQL Server',
-                },
-            }
-        }
+}
 
 # Option 2: SQLite (Simple, for development only)
 # DATABASES = {
@@ -172,6 +145,9 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 STATIC_URL = 'static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
+STATICFILES_DIRS = [
+    os.path.join(BASE_DIR, 'custom_admin/static'),
+]
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
 # Media files

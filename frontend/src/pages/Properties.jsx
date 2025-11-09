@@ -1,20 +1,52 @@
 import { useState, useEffect } from 'react';
-import { useSearchParams } from 'react-router-dom';
-import { Search, Filter, SlidersHorizontal, TrendingUp, Award } from 'lucide-react';
+import { useSearchParams, useNavigate } from 'react-router-dom';
+import { Search, Filter, SlidersHorizontal, Heart, MapPin, Star } from 'lucide-react';
 import PropertyCard from '../components/PropertyCard';
 import Button from '../components/ui/Button';
 import Input from '../components/ui/Input';
 import Loading from '../components/ui/Loading';
 import Card from '../components/ui/Card';
 import { propertyService } from '../services/propertyService';
+import { useAuthStore } from '../store/useAuthStore';
 
 const Properties = () => {
   const [searchParams, setSearchParams] = useSearchParams();
+  const navigate = useNavigate();
+  const { isAuthenticated } = useAuthStore();
   const [properties, setProperties] = useState([]);
   const [recommendedProperties, setRecommendedProperties] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showFilters, setShowFilters] = useState(false);
   const [error, setError] = useState(null);
+  const [savedProperties, setSavedProperties] = useState(new Set());
+  
+  // Handle save property action
+  const handleSaveProperty = async (propertyId, e) => {
+    e.stopPropagation();
+    if (!isAuthenticated) {
+      navigate('/login', { state: { from: '/properties' } });
+      return;
+    }
+    
+    try {
+      // Toggle save status
+      if (savedProperties.has(propertyId)) {
+        // Call API to remove from saved
+        // await propertyService.unsaveProperty(propertyId);
+        setSavedProperties(prev => {
+          const newSet = new Set(prev);
+          newSet.delete(propertyId);
+          return newSet;
+        });
+      } else {
+        // Call API to save
+        // await propertyService.saveProperty(propertyId);
+        setSavedProperties(prev => new Set(prev).add(propertyId));
+      }
+    } catch (error) {
+      console.error('Error saving property:', error);
+    }
+  };
   
   const [filters, setFilters] = useState({
     search: searchParams.get('search') || '',
@@ -89,61 +121,70 @@ const Properties = () => {
     setSearchParams({});
   };
 
+  const navigateToProperty = (id) => {
+    navigate(`/properties/${id}`);
+  };
+
+  const handleContactOwner = (e, property) => {
+    e.stopPropagation();
+    if (!isAuthenticated) {
+      navigate('/login', { state: { from: `/properties/${property.id}` } });
+      return;
+    }
+    // Handle contact owner logic
+    console.log('Contacting owner for property:', property.id);
+  };
+
+  if (loading) {
+    return (
+      <div className="container mx-auto px-4 py-8">
+        <Loading />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="container mx-auto px-4 py-8">
+        <div className="text-red-500">{error}</div>
+      </div>
+    );
+  }
+
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Browse Properties for Rent</h1>
-          <p className="text-gray-600">Find your perfect home from our verified listings</p>
-          
-          {/* Search Bar */}
-          <div className="flex gap-2">
-            <div className="flex-1 relative">
-              <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-              <input
-                type="text"
-                name="search"
-                placeholder="Search properties..."
-                className="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
-                value={filters.search}
-                onChange={handleFilterChange}
-                onKeyPress={(e) => e.key === 'Enter' && applyFilters()}
-              />
+    <div className="container mx-auto px-4 py-8">
+      <div className="mb-8 text-center">
+        <h1 className="text-4xl font-bold text-gray-900 mb-2">Find Your Perfect Home</h1>
+        <p className="text-gray-600">Browse through our selection of properties across Cambodia</p>
+      </div>
+      
+      {/* Search and Filter */}
+      <div className="mb-8 bg-white p-6 rounded-lg shadow-sm">
+        <div className="flex flex-col md:flex-row gap-4 mb-4">
+          <div className="flex-1 relative">
+            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+              <Search className="h-5 w-5 text-gray-400" />
             </div>
-            <Button onClick={() => setShowFilters(!showFilters)} variant="outline">
-              <SlidersHorizontal className="w-5 h-5 mr-2" />
-              Filters
-            </Button>
-            <Button onClick={applyFilters}>
-              Search
-            </Button>
+            <Input
+              type="text"
+              placeholder="Search by location, property type, or features..."
+              className="pl-10 w-full"
+              value={filters.search}
+              onChange={(e) => handleFilterChange('search', e.target.value)}
+            />
           </div>
+          <Button
+            variant="outline"
+            onClick={() => setShowFilters(!showFilters)}
+            className="flex items-center gap-2"
+          >
+            <Filter className="h-4 w-4" />
+            {showFilters ? 'Hide Filters' : 'Filters'}
+          </Button>
         </div>
-
-        {/* Recommended Properties Section */}
-        {recommendedProperties.length > 0 && (
-          <Card className="mb-8 p-6 bg-gradient-to-r from-amber-50 to-orange-50 border-amber-200">
-            <div className="flex items-center gap-2 mb-4">
-              <Award className="w-6 h-6 text-amber-600" />
-              <h2 className="text-2xl font-bold text-gray-900">Recommended for You</h2>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              {recommendedProperties.map((property) => (
-                <PropertyCard 
-                  key={property.id} 
-                  property={{ ...property, is_recommended: true }} 
-                  onFavoriteToggle={loadProperties} 
-                />
-              ))}
-            </div>
-          </Card>
-        )}
-
-        {/* Filters Panel */}
         {showFilters && (
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-8">
-            <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
               <Input
                 label="City"
                 name="city"
@@ -151,27 +192,28 @@ const Properties = () => {
                 onChange={handleFilterChange}
                 placeholder="e.g., Phnom Penh"
               />
+            </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Property Type
-                </label>
-                <select
-                  name="property_type"
-                  value={filters.property_type}
-                  onChange={handleFilterChange}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
-                >
-                  <option value="">All Types</option>
-                  <option value="apartment">Apartment</option>
-                  <option value="house">House</option>
-                  <option value="room">Room</option>
-                  <option value="studio">Studio</option>
-                  <option value="condo">Condo</option>
-                </select>
-              </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Property Type
+              </label>
+              <select
+                name="property_type"
+                value={filters.property_type}
+                onChange={(e) => handleFilterChange('property_type', e.target.value)}
+                className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm rounded-md"
+              >
+                <option value="">All Types</option>
+                <option value="apartment">Apartment</option>
+                <option value="house">House</option>
+                <option value="villa">Villa</option>
+                <option value="condo">Condo</option>
+                <option value="studio">Studio</option>
+              </select>
+            </div>
 
-              <Input
+            <Input
                 label="Min Price ($)"
                 type="number"
                 name="min_price"
@@ -227,11 +269,10 @@ const Properties = () => {
                   <option value="">Any</option>
                   <option value="true">Yes</option>
                   <option value="false">No</option>
-                </select>
-              </div>
+              </select>
             </div>
 
-            <div className="flex gap-2 mt-4">
+            <div className="col-span-full flex gap-2 mt-4">
               <Button onClick={applyFilters}>Apply Filters</Button>
               <Button variant="outline" onClick={clearFilters}>Clear All</Button>
             </div>

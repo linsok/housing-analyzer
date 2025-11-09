@@ -4,6 +4,7 @@ import Home from './pages/Home';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import Properties from './pages/Properties';
+import PropertyPublicView from './pages/PropertyPublicView';
 import PropertyDetail from './pages/PropertyDetail';
 import RenterDashboard from './pages/RenterDashboard';
 import OwnerDashboard from './pages/OwnerDashboard';
@@ -23,7 +24,11 @@ const ProtectedRoute = ({ children, allowedRoles = [] }) => {
   const { isAuthenticated, user } = useAuthStore();
 
   if (!isAuthenticated) {
-    return <Navigate to="/login" replace />;
+    // Only redirect to login if not on the home page
+    if (window.location.pathname !== '/') {
+      return <Navigate to="/login" replace />;
+    }
+    return children; // Allow access to the home page
   }
 
   if (allowedRoles.length > 0 && !allowedRoles.includes(user?.role)) {
@@ -38,8 +43,25 @@ function App() {
     <Router>
       <Routes>
         {/* Public Routes */}
+        <Route path="/" element={
+          <Layout>
+            <Home />
+          </Layout>
+        } />
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
+        
+        {/* Public Property Routes */}
+        <Route path="/properties" element={
+          <Layout>
+            <Properties />
+          </Layout>
+        } />
+        <Route path="/properties/:id" element={
+          <Layout>
+            <PropertyPublicView />
+          </Layout>
+        } />
 
         {/* Routes with Layout */}
         <Route
@@ -47,9 +69,9 @@ function App() {
           element={
             <Layout>
               <Routes>
+                {/* Removed duplicate /properties route */}
                 <Route path="/" element={<Home />} />
                 <Route path="/properties" element={<Properties />} />
-                <Route path="/properties/:id" element={<PropertyDetail />} />
                 <Route path="/market-trend" element={<MarketTrend />} />
                 <Route path="/about" element={<AboutUs />} />
                 <Route path="/support" element={<Support />} />

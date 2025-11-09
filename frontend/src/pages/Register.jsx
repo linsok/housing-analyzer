@@ -94,71 +94,67 @@ const Register = () => {
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-4">
               <Input
-                label="First Name"
-                type="text"
-                name="first_name"
-                value={formData.first_name}
+                label="Username"
+                name="username"
+                value={formData.username}
                 onChange={handleChange}
                 required
               />
-
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <Input
+                  label="First Name"
+                  name="first_name"
+                  value={formData.first_name}
+                  onChange={handleChange}
+                  required
+                />
+                <Input
+                  label="Last Name"
+                  name="last_name"
+                  value={formData.last_name}
+                  onChange={handleChange}
+                  required
+                />
+              </div>
               <Input
-                label="Last Name"
-                type="text"
-                name="last_name"
-                value={formData.last_name}
+                label="Email Address"
+                type="email"
+                name="email"
+                value={formData.email}
+                onChange={handleChange}
+                required
+                autoComplete="email"
+              />
+              <Input
+                label="Phone Number"
+                type="tel"
+                name="phone"
+                value={formData.phone}
                 onChange={handleChange}
                 required
               />
-            </div>
-
-            <Input
-              label="Username"
-              type="text"
-              name="username"
-              value={formData.username}
-              onChange={handleChange}
-              required
-            />
-
-            <Input
-              label="Email"
-              type="email"
-              name="email"
-              value={formData.email}
-              onChange={handleChange}
-              required
-            />
-
-            <Input
-              label="Phone Number"
-              type="tel"
-              name="phone"
-              value={formData.phone}
-              onChange={handleChange}
-              placeholder="+855 12 345 678"
-            />
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <Input
-                label="Password"
-                type="password"
-                name="password"
-                value={formData.password}
-                onChange={handleChange}
-                required
-              />
-
-              <Input
-                label="Confirm Password"
-                type="password"
-                name="password_confirm"
-                value={formData.password_confirm}
-                onChange={handleChange}
-                required
-              />
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <Input
+                  label="Password"
+                  type="password"
+                  name="password"
+                  value={formData.password}
+                  onChange={handleChange}
+                  required
+                  minLength={8}
+                />
+                <Input
+                  label="Confirm Password"
+                  type="password"
+                  name="password_confirm"
+                  value={formData.password_confirm}
+                  onChange={handleChange}
+                  required
+                  minLength={8}
+                />
+              </div>
             </div>
 
             <div className="flex items-center">
@@ -183,7 +179,7 @@ const Register = () => {
               disabled={loading}
             >
               {loading ? (
-                'Creating Account...'
+                'Creating account...'
               ) : (
                 <>
                   <UserPlus className="w-5 h-5 mr-2" />
@@ -191,16 +187,14 @@ const Register = () => {
                 </>
               )}
             </Button>
-          </form>
 
-          <div className="mt-6 text-center">
-            <p className="text-sm text-gray-600">
+            <div className="mt-4 text-center text-sm">
               Already have an account?{' '}
-              <Link to="/login" className="font-medium text-primary-600 hover:text-primary-500">
+              <Link to="/login" className="text-primary-600 hover:text-primary-500 font-medium">
                 Sign in
               </Link>
-            </p>
-          </div>
+            </div>
+          </form>
         </Card>
       </div>
     </div>
