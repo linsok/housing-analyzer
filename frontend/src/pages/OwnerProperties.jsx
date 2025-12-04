@@ -15,6 +15,13 @@ const OwnerProperties = () => {
     loadProperties();
   }, []);
 
+  // Debug: Log property data when it changes
+  useEffect(() => {
+    if (properties.length > 0) {
+      console.log('Properties loaded:', properties);
+    }
+  }, [properties]);
+
   const loadProperties = async () => {
     try {
       setLoading(true);
@@ -225,25 +232,15 @@ const OwnerProperties = () => {
                             to={`/properties/${property.id}`}
                             className="p-2 rounded-full text-gray-400 hover:text-indigo-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
                             title="View"
+                            onClick={() => console.log('Viewing property:', property.id)}
                           >
                             <FaEye className="h-5 w-5" />
                           </Link>
                           <Link
                             to={`/edit-property/${property.id}`}
-                            className={`p-2 rounded-full ${
-                              property.verification_status === 'pending' || property.verification_status === 'rejected'
-                                ? 'text-indigo-600 hover:text-indigo-700'
-                                : 'text-gray-300 cursor-not-allowed'
-                            } focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500`}
-                            title={property.verification_status === 'pending' || property.verification_status === 'rejected' 
-                              ? 'Edit' 
-                              : 'Only properties with pending or rejected verification can be edited'}
-                            onClick={(e) => {
-                              if (property.verification_status !== 'pending' && property.verification_status !== 'rejected') {
-                                e.preventDefault();
-                                toast.info('Only properties with pending or rejected verification can be edited');
-                              }
-                            }}
+                            className="p-2 rounded-full text-indigo-600 hover:text-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                            title="Edit property"
+                            onClick={() => console.log('Editing property:', property.id)}
                           >
                             <FaEdit className="h-5 w-5" />
                           </Link>

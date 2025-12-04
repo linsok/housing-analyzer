@@ -124,7 +124,7 @@ const OwnerDashboard = () => {
           <Card className="mb-8 bg-gradient-to-r from-primary-50 to-blue-50 border-primary-200">
             <div className="flex items-center justify-between">
               <div>
-                <h2 className="text-xl font-semibold mb-2">📊 Detailed Analytics Available</h2>
+                <h2 className="text-xl font-semibold mb-2">Detailed Analytics Available</h2>
                 <p className="text-gray-600 text-sm mb-4">
                   View comprehensive insights about your properties, guest trends, market comparisons, and competitor analysis
                 </p>
@@ -202,14 +202,7 @@ const OwnerDashboard = () => {
                             </div>
                           </div>
 
-                          <div className="flex gap-2">
-                            <Link to={`/properties/${property.id}`}>
-                              <Button variant="outline" size="sm">View</Button>
-                            </Link>
-                            <Link to={`/owner/properties/${property.id}/edit`}>
-                              <Button variant="outline" size="sm">Edit</Button>
-                            </Link>
-                          </div>
+                          
                         </div>
                       </div>
                     </div>
