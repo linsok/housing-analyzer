@@ -18,17 +18,24 @@ const PropertyPublicView = () => {
   useEffect(() => {
     const fetchProperty = async () => {
       try {
-        const data = await propertyService.getPropertyById(id);
+        console.log('Fetching property with ID:', id);
+        const data = await propertyService.getProperty(id);
+        console.log('Property data received:', data);
         setProperty(data);
       } catch (err) {
-        setError('Failed to load property details');
         console.error('Error fetching property:', err);
+        setError(`Failed to load property details: ${err.message || 'Unknown error'}`);
       } finally {
         setLoading(false);
       }
     };
 
-    fetchProperty();
+    if (id) {
+      fetchProperty();
+    } else {
+      setError('No property ID provided');
+      setLoading(false);
+    }
   }, [id]);
 
   const handleContactOwner = () => {

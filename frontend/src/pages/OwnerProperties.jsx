@@ -228,14 +228,7 @@ const OwnerProperties = () => {
                           </div>
                         </div>
                         <div className="ml-4 flex-shrink-0 flex space-x-2">
-                          <Link
-                            to={`/properties/${property.id}`}
-                            className="p-2 rounded-full text-gray-400 hover:text-indigo-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-                            title="View"
-                            onClick={() => console.log('Viewing property:', property.id)}
-                          >
-                            <FaEye className="h-5 w-5" />
-                          </Link>
+                          
                           <Link
                             to={`/edit-property/${property.id}`}
                             className="p-2 rounded-full text-indigo-600 hover:text-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"

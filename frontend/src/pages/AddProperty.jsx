@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { Home, Upload, DollarSign, MapPin, Bed, Bath, Square, CheckCircle } from 'lucide-react';
@@ -10,6 +10,8 @@ import { propertyService } from '../services/propertyService';
 const AddProperty = (props) => {
   const navigate = useNavigate();
   const { id } = useParams();
+  const [searchParams] = useSearchParams();
+  const viewOnly = searchParams.get('viewOnly') === 'true';
   // Check if we're in edit mode based on URL or props
   const editMode = id ? true : (props.editMode || false);
   const [loading, setLoading] = useState(false);
@@ -265,7 +267,7 @@ const AddProperty = (props) => {
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-2">
             <Home className="w-8 h-8 text-primary-600" />
-            {editMode ? 'Edit Property' : 'Add New Property'}
+            {viewOnly ? 'View Property' : (editMode ? 'Edit Property' : 'Add New Property')}
           </h1>
           <p className="text-gray-600 mt-2">
             Fill in the details below to list your property. It will be reviewed by admin before being published.
