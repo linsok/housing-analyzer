@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { Search, Filter, SlidersHorizontal, Heart, MapPin, Star } from 'lucide-react';
 import PropertyCard from '../components/PropertyCard';
@@ -20,7 +20,60 @@ const Properties = () => {
   const [error, setError] = useState(null);
   const [savedProperties, setSavedProperties] = useState(new Set());
   
+  const [filters, setFilters] = useState({
+    search: searchParams.get('search') || '',
+    city: searchParams.get('city') || '',
+    address: searchParams.get('address') || '',
+    property_type: searchParams.get('property_type') || '',
+    min_price: searchParams.get('min_price') || '',
+    max_price: searchParams.get('max_price') || '',
+    min_bedrooms: searchParams.get('min_bedrooms') || '',
+    is_furnished: searchParams.get('is_furnished') || '',
+    pets_allowed: searchParams.get('pets_allowed') || '',
+  });
+
+  // Auto-apply filters when they change (except for search)
+  useEffect(() => {
+    if (filters.city !== searchParams.get('search')) {
+      applyFilters();
+    }
+  }, [filters.city, filters.address, filters.property_type, filters.min_price, filters.max_price, filters.min_bedrooms, filters.is_furnished, filters.pets_allowed]);
+
   // Handle save property action
+  // Handle search on Enter key
+  const handleSearchKeyPress = (e) => {
+    if (e.key === 'Enter') {
+      applyFilters();
+    }
+  };
+
+  // Helper function to normalize search text (case-insensitive and remove spaces)
+  const normalizeSearchText = (text) => {
+    return text.toLowerCase().replace(/\s+/g, '');
+  };
+
+  // Helper function to check if property matches search criteria
+  const propertyMatchesSearch = (property, searchQuery) => {
+    if (!searchQuery) return true;
+    
+    const normalizedQuery = normalizeSearchText(searchQuery);
+    
+    // Search in multiple fields with normalized text
+    const searchableFields = [
+      property.title || '',
+      property.description || '',
+      property.city || '',
+      property.area || '',
+      property.district || '',
+      property.address || '',
+      property.property_type || '',
+    ];
+    
+    return searchableFields.some(field => 
+      normalizeSearchText(field).includes(normalizedQuery)
+    );
+  };
+
   const handleSaveProperty = async (propertyId, e) => {
     e.stopPropagation();
     if (!isAuthenticated) {
@@ -48,21 +101,25 @@ const Properties = () => {
     }
   };
   
-  const [filters, setFilters] = useState({
-    search: searchParams.get('search') || '',
-    city: searchParams.get('city') || '',
-    property_type: searchParams.get('property_type') || '',
-    min_price: searchParams.get('min_price') || '',
-    max_price: searchParams.get('max_price') || '',
-    min_bedrooms: searchParams.get('min_bedrooms') || '',
-    is_furnished: searchParams.get('is_furnished') || '',
-    pets_allowed: searchParams.get('pets_allowed') || '',
-  });
+  // Update filters when URL parameters change
+  useEffect(() => {
+    setFilters({
+      search: searchParams.get('search') || '',
+      city: searchParams.get('city') || '',
+      address: searchParams.get('address') || '',
+      property_type: searchParams.get('property_type') || '',
+      min_price: searchParams.get('min_price') || '',
+      max_price: searchParams.get('max_price') || '',
+      min_bedrooms: searchParams.get('min_bedrooms') || '',
+      is_furnished: searchParams.get('is_furnished') || '',
+      pets_allowed: searchParams.get('pets_allowed') || '',
+    });
+  }, [searchParams]);
 
   useEffect(() => {
     loadProperties();
     loadRecommendedProperties();
-  }, [searchParams]);
+  }, [filters]);
 
   const loadProperties = async () => {
     setLoading(true);
@@ -74,7 +131,16 @@ const Properties = () => {
       });
       
       const response = await propertyService.getProperties(params);
-      setProperties(response.results || response);
+      let allProperties = response.results || response;
+      
+      // Apply client-side search filtering for case-insensitive search with space handling
+      if (filters.search) {
+        allProperties = allProperties.filter(property => 
+          propertyMatchesSearch(property, filters.search)
+        );
+      }
+      
+      setProperties(allProperties);
     } catch (error) {
       console.error('Error loading properties:', error);
       setError(error.message || 'Failed to load properties');
@@ -94,23 +160,24 @@ const Properties = () => {
     }
   };
 
-  const handleFilterChange = (e) => {
+  const handleFilterChange = useCallback((e) => {
     const { name, value } = e.target;
-    setFilters({ ...filters, [name]: value });
-  };
+    setFilters(prev => ({ ...prev, [name]: value }));
+  }, []);
 
-  const applyFilters = () => {
+  const applyFilters = useCallback(() => {
     const params = {};
     Object.keys(filters).forEach(key => {
       if (filters[key]) params[key] = filters[key];
     });
     setSearchParams(params);
-  };
+  }, [filters]);
 
-  const clearFilters = () => {
+  const clearFilters = useCallback(() => {
     setFilters({
       search: '',
       city: '',
+      address: '',
       property_type: '',
       min_price: '',
       max_price: '',
@@ -119,7 +186,7 @@ const Properties = () => {
       pets_allowed: '',
     });
     setSearchParams({});
-  };
+  }, []);
 
   const navigateToProperty = (id) => {
     navigate(`/properties/${id}`);
@@ -160,19 +227,7 @@ const Properties = () => {
       
       {/* Search and Filter */}
       <div className="mb-8 bg-white p-6 rounded-lg shadow-sm">
-        <div className="flex flex-col md:flex-row gap-4 mb-4">
-          <div className="flex-1 relative">
-            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-              <Search className="h-5 w-5 text-gray-400" />
-            </div>
-            <Input
-              type="text"
-              placeholder="Search by location, property type, or features..."
-              className="pl-10 w-full"
-              value={filters.search}
-              onChange={(e) => handleFilterChange('search', e.target.value)}
-            />
-          </div>
+        <div className="flex justify-end mb-4">
           <Button
             variant="outline"
             onClick={() => setShowFilters(!showFilters)}
@@ -185,12 +240,30 @@ const Properties = () => {
         {showFilters && (
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
-              <Input
-                label="City"
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                City
+              </label>
+              <input
+                type="text"
                 name="city"
                 value={filters.city}
                 onChange={handleFilterChange}
                 placeholder="e.g., Phnom Penh"
+                className="mt-1 block w-full pl-3 pr-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 sm:text-sm"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Address/Area
+              </label>
+              <input
+                type="text"
+                name="address"
+                value={filters.address}
+                onChange={handleFilterChange}
+                placeholder="e.g., Sen Sok, BKK"
+                className="mt-1 block w-full pl-3 pr-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 sm:text-sm"
               />
             </div>
 
@@ -201,44 +274,60 @@ const Properties = () => {
               <select
                 name="property_type"
                 value={filters.property_type}
-                onChange={(e) => handleFilterChange('property_type', e.target.value)}
+                onChange={handleFilterChange}
                 className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm rounded-md"
               >
                 <option value="">All Types</option>
                 <option value="apartment">Apartment</option>
                 <option value="house">House</option>
-                <option value="villa">Villa</option>
-                <option value="condo">Condo</option>
+                <option value="room">Room</option>
                 <option value="studio">Studio</option>
+                <option value="condo">Condo</option>
+                <option value="villa">Villa</option>
               </select>
             </div>
 
-            <Input
-                label="Min Price ($)"
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Min Price ($)
+              </label>
+              <input
                 type="number"
                 name="min_price"
                 value={filters.min_price}
                 onChange={handleFilterChange}
                 placeholder="0"
+                className="mt-1 block w-full pl-3 pr-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 sm:text-sm"
               />
+            </div>
 
-              <Input
-                label="Max Price ($)"
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Max Price ($)
+              </label>
+              <input
                 type="number"
                 name="max_price"
                 value={filters.max_price}
                 onChange={handleFilterChange}
                 placeholder="10000"
+                className="mt-1 block w-full pl-3 pr-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 sm:text-sm"
               />
+            </div>
 
-              <Input
-                label="Min Bedrooms"
+              <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Min Bedrooms
+              </label>
+              <input
                 type="number"
                 name="min_bedrooms"
                 value={filters.min_bedrooms}
                 onChange={handleFilterChange}
                 placeholder="1"
+                className="mt-1 block w-full pl-3 pr-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 sm:text-sm"
               />
+            </div>
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">

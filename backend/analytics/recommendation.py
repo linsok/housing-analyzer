@@ -58,18 +58,20 @@ def get_recommendations(user, limit=12):
         queryset = queryset.filter(filters)
     
     # Get user's viewed properties
-    viewed_property_ids = PropertyView.objects.filter(
+    viewed_property_ids = list(PropertyView.objects.filter(
         user=user
-    ).values_list('property_id', flat=True)[:20]
+    ).values_list('property_id', flat=True)[:20])
     
     # Get user's favorite properties
-    favorited_property_ids = Favorite.objects.filter(
+    favorited_property_ids = list(Favorite.objects.filter(
         user=user
-    ).values_list('property_id', flat=True)
+    ).values_list('property_id', flat=True))
     
     # Exclude already viewed and favorited
-    queryset = queryset.exclude(id__in=viewed_property_ids)
-    queryset = queryset.exclude(id__in=favorited_property_ids)
+    if viewed_property_ids:
+        queryset = queryset.exclude(id__in=viewed_property_ids)
+    if favorited_property_ids:
+        queryset = queryset.exclude(id__in=favorited_property_ids)
     
     # Find similar properties based on viewed properties
     if viewed_property_ids:
