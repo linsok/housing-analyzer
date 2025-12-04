@@ -128,7 +128,7 @@ const AddProperty = (props) => {
             is_furnished: property.is_furnished || false,
             pets_allowed: property.pets_allowed || false,
             smoking_allowed: property.smoking_allowed || false,
-            facilities: property.facilities ? 
+facilities: property.facilities ? 
               (typeof property.facilities === 'string' ? 
                 (property.facilities.startsWith('[') ? 
                   JSON.parse(property.facilities) : 
@@ -210,7 +210,7 @@ const AddProperty = (props) => {
         rules: formData.rules || '',
         available_from: formData.available_from || null,
         status: 'available',
-        verification_status: editMode ? 'pending' : 'pending' // Reset to pending when editing
+        verification_status: 'pending' // Reset to pending when editing
       };
 
       // Add all fields to formDataToSend
