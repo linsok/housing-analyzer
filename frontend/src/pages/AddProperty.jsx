@@ -1,15 +1,21 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
+import { toast } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 import { Home, Upload, DollarSign, MapPin, Bed, Bath, Square, CheckCircle } from 'lucide-react';
 import Card from '../components/ui/Card';
 import Button from '../components/ui/Button';
 import { propertyService } from '../services/propertyService';
 
-const AddProperty = () => {
+const AddProperty = (props) => {
   const navigate = useNavigate();
+  const { id } = useParams();
+  // Check if we're in edit mode based on URL or props
+  const editMode = id ? true : (props.editMode || false);
   const [loading, setLoading] = useState(false);
   const [images, setImages] = useState([]);
   const [imagePreviews, setImagePreviews] = useState([]);
+  const [existingImages, setExistingImages] = useState([]);
   const [formData, setFormData] = useState({
     title: '',
     description: '',
@@ -90,49 +96,176 @@ const AddProperty = () => {
     setImagePreviews(prev => prev.filter((_, i) => i !== index));
   };
 
+  // Fetch property details when in edit mode
+  useEffect(() => {
+    if (editMode && id) {
+      const fetchProperty = async () => {
+        try {
+          setLoading(true);
+          const property = await propertyService.getProperty(id);
+          
+          // Convert property data to match form structure
+          const formattedData = {
+            title: property.title || '',
+            description: property.description || '',
+            property_type: property.property_type || 'apartment',
+            address: property.address || '',
+            city: property.city || '',
+            district: property.district || '',
+            area: property.area || '',
+            postal_code: property.postal_code || '',
+            rent_price: property.rent_price || '',
+            deposit: property.deposit || '',
+            sale_price: property.sale_price || '',
+            listing_type: property.listing_type || 'rent',
+            bedrooms: property.bedrooms || 1,
+            bathrooms: property.bathrooms || 1,
+            area_sqm: property.area_sqm || '',
+            floor_number: property.floor_number || '',
+            is_furnished: property.is_furnished || false,
+            pets_allowed: property.pets_allowed || false,
+            smoking_allowed: property.smoking_allowed || false,
+            facilities: property.facilities ? JSON.parse(property.facilities) : [],
+            rules: property.rules || '',
+            available_from: property.available_from || '',
+          };
+
+          setFormData(formattedData);
+          
+          // Handle existing images
+          if (property.images && property.images.length > 0) {
+            setExistingImages(property.images);
+          }
+          
+        } catch (error) {
+          console.error('Error submitting form:', error);
+          const errorMessage = error.response?.data?.message || 'Failed to save property. Please try again.';
+          toast.error(errorMessage);
+          navigate('/owner/properties');
+        } finally {
+          setLoading(false);
+        }
+      };
+
+      fetchProperty();
+    }
+  }, [editMode, id, navigate]);
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     
-    if (images.length === 0) {
-      alert('Please upload at least one image');
+    if (!editMode && images.length === 0) {
+      toast.error('Please upload at least one image');
+      return;
+    }
+
+    // Check required fields
+    const requiredFields = ['title', 'description', 'property_type', 'address', 'city', 'rent_price'];
+    const missingFields = requiredFields.filter(field => !formData[field]);
+    
+    if (missingFields.length > 0) {
+      toast.error(`Please fill in all required fields: ${missingFields.join(', ')}`);
       return;
     }
 
     setLoading(true);
     try {
-      // Create property
+      // Create FormData for the property data
+      const formDataToSend = new FormData();
+      
+      // Prepare property data with defaults
       const propertyData = {
-        ...formData,
+        title: formData.title,
+        description: formData.description,
+        property_type: formData.property_type,
+        address: formData.address,
+        city: formData.city,
+        district: formData.district || '',
+        area: formData.area || '',
+        postal_code: formData.postal_code || '',
         rent_price: parseFloat(formData.rent_price) || 0,
         deposit: parseFloat(formData.deposit) || 0,
-        area_sqm: parseFloat(formData.area_sqm) || null,
-        floor_number: parseInt(formData.floor_number) || null,
-        bedrooms: parseInt(formData.bedrooms),
-        bathrooms: parseInt(formData.bathrooms),
+        bedrooms: parseInt(formData.bedrooms) || 1,
+        bathrooms: parseInt(formData.bathrooms) || 1,
+        area_sqm: formData.area_sqm ? parseFloat(formData.area_sqm) : null,
+        floor_number: formData.floor_number ? parseInt(formData.floor_number) : null,
+        is_furnished: Boolean(formData.is_furnished),
+        pets_allowed: Boolean(formData.pets_allowed),
+        smoking_allowed: Boolean(formData.smoking_allowed),
+        facilities: JSON.stringify(formData.facilities || []),
+        rules: formData.rules || '',
+        available_from: formData.available_from || null,
+        status: 'available',
+        verification_status: 'pending'
       };
 
-      const property = await propertyService.createProperty(propertyData);
+      // Add all fields to formDataToSend
+      Object.entries(propertyData).forEach(([key, value]) => {
+        if (value !== null && value !== undefined) {
+          formDataToSend.append(key, value);
+        }
+      });
 
-      // Upload images
-      await propertyService.uploadImages(property.id, images);
+      // Add images to FormData (only for new uploads)
+      images.forEach((image, index) => {
+        formDataToSend.append('images', image);
+      });
 
-      alert('Property submitted successfully! It will be reviewed by admin before being published.');
-      navigate('/owner/dashboard');
+      // If in edit mode, include existing image IDs to keep them
+      if (editMode && existingImages.length > 0) {
+        existingImages.forEach(image => {
+          formDataToSend.append('existing_images', image.id);
+        });
+      }
+
+      // Log the data being sent (for debugging)
+      console.log('Submitting property data:', Object.fromEntries(formDataToSend.entries()));
+
+      // Submit the form
+      let response;
+      if (editMode) {
+        response = await propertyService.updateProperty(id, formDataToSend);
+        toast.success('Property updated successfully!');
+      } else {
+        response = await propertyService.createProperty(formDataToSend);
+        toast.success('Property added successfully!');
+      }
+      
+      // Redirect to properties list
+      navigate('/owner/properties');
     } catch (error) {
-      console.error('Error creating property:', error);
-      alert(error.response?.data?.message || 'Failed to create property. Please try again.');
+      console.error('Error creating property:', {
+        error: error,
+        response: error.response?.data,
+        status: error.response?.status,
+      });
+      
+      const errorMessage = error.response?.data?.detail || 
+                         error.response?.data?.message || 
+                         error.message || 
+                         'An error occurred while saving the property';
+      
+      toast.error(errorMessage);
     } finally {
       setLoading(false);
     }
   };
 
+  if (loading && editMode) {
+    return (
+      <div className="flex justify-center items-center h-64">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+      </div>
+    );
+  }
+
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
+    <div className="container mx-auto px-4 py-8">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-2">
             <Home className="w-8 h-8 text-primary-600" />
-            Add New Property
+            {editMode ? 'Edit Property' : 'Add New Property'}
           </h1>
           <p className="text-gray-600 mt-2">
             Fill in the details below to list your property. It will be reviewed by admin before being published.
@@ -534,8 +667,27 @@ const AddProperty = () => {
                 />
               </div>
 
+              {existingImages.map((image, index) => (
+                <div key={`existing-${index}`} className="relative group">
+                  <img 
+                    src={image.image} 
+                    alt={`Existing ${index + 1}`} 
+                    className="w-full h-48 object-cover rounded-lg"
+                  />
+                  <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                    <button
+                      type="button"
+                      onClick={() => setExistingImages(prev => prev.filter((_, i) => i !== index))}
+                      className="bg-red-500 text-white p-2 rounded-full hover:bg-red-600"
+                    >
+                      Remove
+                    </button>
+                  </div>
+                </div>
+              ))}
+              
               {imagePreviews.length > 0 && (
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
                   {imagePreviews.map((preview, index) => (
                     <div key={index} className="relative">
                       <img

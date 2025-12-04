@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Plus, Home, Eye, Heart, DollarSign, TrendingUp, Calendar } from 'lucide-react';
+import { Plus, Home, Eye, Heart, DollarSign, TrendingUp, Calendar, List } from 'lucide-react';
 import Card from '../components/ui/Card';
 import Badge from '../components/ui/Badge';
 import Button from '../components/ui/Button';
@@ -74,12 +74,20 @@ const OwnerDashboard = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between mb-8">
           <h1 className="text-3xl font-bold text-gray-900">Owner Dashboard</h1>
-          <Link to="/owner/properties/new">
-            <Button>
-              <Plus className="w-5 h-5 mr-2" />
-              Add Property
-            </Button>
-          </Link>
+          <div className="flex space-x-4">
+            <Link to="/owner/properties">
+              <Button variant="outline" className="flex items-center">
+                <List className="w-5 h-5 mr-2" />
+                Manage Properties
+              </Button>
+            </Link>
+            <Link to="/owner/properties/new">
+              <Button>
+                <Plus className="w-5 h-5 mr-2" />
+                Add Property
+              </Button>
+            </Link>
+          </div>
         </div>
 
         {/* Stats Cards */}
