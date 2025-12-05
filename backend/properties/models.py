@@ -109,6 +109,7 @@ class PropertyImage(models.Model):
     image = models.ImageField(upload_to='properties/')
     caption = models.CharField(max_length=200, blank=True)
     is_primary = models.BooleanField(default=False)
+    is_qr_code = models.BooleanField(default=False, help_text='Check if this is a QR code for payment')
     order = models.IntegerField(default=0)
     created_at = models.DateTimeField(auto_now_add=True)
     

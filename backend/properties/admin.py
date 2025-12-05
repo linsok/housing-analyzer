@@ -19,8 +19,9 @@ class PropertyAdmin(admin.ModelAdmin):
 
 @admin.register(PropertyImage)
 class PropertyImageAdmin(admin.ModelAdmin):
-    list_display = ['property', 'is_primary', 'order', 'created_at']
-    list_filter = ['is_primary']
+    list_display = ['property', 'is_primary', 'is_qr_code', 'order', 'created_at']
+    list_filter = ['is_primary', 'is_qr_code']
+    search_fields = ['property__title', 'caption']
 
 
 @admin.register(Favorite)

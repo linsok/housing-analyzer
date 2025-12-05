@@ -46,6 +46,10 @@ const PropertyPublicView = () => {
         console.log('Fetching property with ID:', id);
         const data = await propertyService.getProperty(id);
         console.log('Property data received:', data);
+        // Debug: Check if qr_code exists in the response
+        console.log('QR Code in response:', data.qr_code);
+        // Debug: Check images array for QR code
+        console.log('Property images:', data.images);
         setProperty(data);
       } catch (err) {
         console.error('Error fetching property:', err);
@@ -69,6 +73,18 @@ const PropertyPublicView = () => {
       return;
     }
     setShowContactModal(true);
+  };
+
+  
+
+  // Format price helper function
+  const formatPrice = (price) => {
+    if (price === null || price === undefined) return '0.00';
+    const num = parseFloat(price);
+    return isNaN(num) ? '0.00' : num.toLocaleString('en-US', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
+    });
   };
 
   const handleSaveProperty = async () => {
@@ -119,23 +135,39 @@ const PropertyPublicView = () => {
     setIsSubmitting(true);
     
     try {
+      // Ensure rent_price is a valid number
+      const monthlyPrice = parseFloat(property.rent_price);
+      if (isNaN(monthlyPrice) || monthlyPrice <= 0) {
+        throw new Error('Invalid property price. Please contact support.');
+      }
+
       // Calculate deposit (50% of the price)
-      const depositAmount = (property.price_per_month * 0.5).toFixed(2);
+      const depositAmount = (monthlyPrice * 0.5).toFixed(2);
       
-      // Create the booking
+      // Create the booking data with required fields
       const bookingData = {
         property: property.id,
+        renter: user.id,  // Add the current user as the renter
         start_date: formData.preferredDate,
         contact_phone: formData.phone,
-        member_count: formData.memberCount,
+        member_count: parseInt(formData.memberCount) || 1,
         notes: formData.notes || '',
-        deposit_amount: depositAmount,
-        total_amount: property.price_per_month,
-        payment_intent: 'pending' // This would be replaced with actual payment intent ID in production
+        deposit_amount: parseFloat(depositAmount),
+        total_amount: monthlyPrice,
+        payment_intent: 'pending',
+        status: 'pending',
+        booking_type: 'rental', // Must be either 'rental' or 'visit'
+        end_date: new Date(new Date(formData.preferredDate).setFullYear(
+          new Date(formData.preferredDate).getFullYear() + 1
+        )).toISOString().split('T')[0],
+        monthly_rent: monthlyPrice  // Add monthly_rent as required by the model
       };
 
+      console.log('Submitting booking data:', bookingData);
+      
       // Save the booking
-      await bookingService.createBooking(bookingData);
+      const response = await bookingService.createBooking(bookingData);
+      console.log('Booking created:', response);
       
       toast.success(`Booking successful! A deposit of $${depositAmount} is required.`);
       setShowBookNowModal(false);
@@ -146,9 +178,34 @@ const PropertyPublicView = () => {
         memberCount: '',
         notes: ''
       }));
+
+      // Redirect to payment page or show success message
+      // navigate('/bookings');
+
     } catch (error) {
-      console.error('Error creating booking:', error);
-      toast.error(error.response?.data?.message || 'Failed to create booking. Please try again.');
+      console.error('Error creating booking:', {
+        error: error.message,
+        response: error.response?.data,
+        status: error.response?.status
+      });
+      
+      // Handle specific error cases
+      let errorMessage = 'Failed to create booking. Please check your details and try again.';
+      
+      if (error.response?.data) {
+        // Handle field-specific errors
+        if (error.response.data.booking_type) {
+          errorMessage = `Booking type error: ${error.response.data.booking_type.join(', ')}`;
+        } else if (error.response.data.detail) {
+          errorMessage = error.response.data.detail;
+        } else if (error.response.data.message) {
+          errorMessage = error.response.data.message;
+        }
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      
+      toast.error(errorMessage);
     } finally {
       setIsSubmitting(false);
     }
@@ -474,19 +531,48 @@ const PropertyPublicView = () => {
             />
           </div>
           
-          <div className="md:col-span-2 bg-gray-50 p-4 rounded-md">
-            <h3 className="font-medium text-gray-900 mb-2">Pricing Summary</h3>
-            <div className="space-y-2 text-sm">
-              <div className="flex justify-between">
-                <span>Monthly Rent:</span>
-                <span>${property?.price_per_month}/month</span>
-              </div>
-              <div className="flex justify-between font-medium">
-                <span>Required Deposit (50%):</span>
-                <span>${property ? (property.price_per_month * 0.5).toFixed(2) : '0.00'}</span>
-              </div>
-            </div>
+       <div className="md:col-span-2 bg-gray-50 p-4 rounded-md">
+    <h3 className="font-medium text-gray-900 mb-2">Pricing Summary</h3>
+    <div className="space-y-2 text-sm">
+      <div className="flex justify-between">
+        <span>Monthly Rent:</span>
+        <span>${formatPrice(property?.rent_price)}/month</span>
+      </div>
+      <div className="flex justify-between font-medium">
+        <span>Required Deposit (50%):</span>
+        <span>${formatPrice((property?.rent_price || 0) * 0.5)}</span>
+      </div>
+    </div>
+
+    {/* QR Code for Payment */}
+    {console.log('Property images:', property?.images)}
+    {console.log('QR code image:', property?.images?.find(img => img.is_qr_code))}
+    {property?.images?.some(img => img.is_qr_code) && (
+      <div className="mt-4 pt-4 border-t border-gray-200">
+        <h4 className="font-medium text-gray-900 mb-2 text-center">Scan to Pay</h4>
+        <div className="flex flex-col items-center">
+          <div className="p-2 bg-white rounded-lg border border-gray-200">
+            <img 
+              src={property.images.find(img => img.is_qr_code).image} 
+              alt="Payment QR Code" 
+              className="h-40 w-40 object-contain"
+              onError={(e) => console.error('Error loading QR code image', e)}
+            />
           </div>
+          <p className="text-xs text-gray-500 mt-2 text-center">
+            Scan this QR code to make payment
+          </p>
+          <a 
+            href={property.images.find(img => img.is_qr_code).image} 
+            download="payment-qr-code.png"
+            className="mt-2 text-sm text-primary-600 hover:text-primary-800 font-medium"
+          >
+            Download QR Code
+          </a>
+        </div>
+      </div>
+    )}
+  </div>
         </div>
         
         <div className="flex justify-end space-x-3 pt-4">

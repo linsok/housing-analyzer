@@ -3,8 +3,9 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
 from django.db.models import Avg, Count, Min, Max, Q, Sum, F
 from django.db.models.functions import TruncMonth, TruncDate, TruncYear
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from dateutil.relativedelta import relativedelta
+from django.utils import timezone as django_timezone
 from properties.models import Property, PropertyView
 from bookings.models import Booking
 from .models import RentTrend
@@ -604,167 +605,245 @@ def market_trends_comprehensive(request):
     })
 
 
+import logging
+logger = logging.getLogger(__name__)
+
 @api_view(['GET'])
 @permission_classes([permissions.IsAuthenticated])
 def renter_analytics(request):
     """Get comprehensive analytics for renters"""
-    user = request.user
-    
-    if user.role != 'renter':
-        return Response({'error': 'Only renters can access this endpoint'}, status=403)
-    
-    # Get all bookings for the renter
-    bookings = Booking.objects.filter(renter=user).select_related('property')
-    
-    # Overview statistics
-    total_bookings = bookings.count()
-    confirmed_bookings = bookings.filter(status='confirmed').count()
-    completed_bookings = bookings.filter(status='completed').count()
-    pending_bookings = bookings.filter(status='pending').count()
-    
-    # Calculate total spent
-    total_spent = float(bookings.filter(
-        status__in=['confirmed', 'completed']
-    ).aggregate(Sum('total_amount'))['total_amount__sum'] or 0)
-    
-    # Current active rentals
-    active_rentals = bookings.filter(
-        status='confirmed',
-        booking_type='rental',
-        start_date__lte=datetime.now().date()
-    ).filter(
-        Q(end_date__gte=datetime.now().date()) | Q(end_date__isnull=True)
-    )
-    
-    # Monthly spending (last 12 months)
-    twelve_months_ago = datetime.now() - relativedelta(months=12)
-    monthly_spending = bookings.filter(
-        status__in=['confirmed', 'completed'],
-        created_at__gte=twelve_months_ago
-    ).annotate(
-        month=TruncMonth('created_at')
-    ).values('month').annotate(
-        amount=Sum('total_amount'),
-        count=Count('id')
-    ).order_by('month')
-    
-    monthly_spending_data = []
-    for item in monthly_spending:
-        monthly_spending_data.append({
-            'month': item['month'].strftime('%b %Y'),
-            'amount': float(item['amount'] or 0),
-            'bookings': item['count']
-        })
-    
-    # Yearly spending (last 3 years)
-    three_years_ago = datetime.now() - relativedelta(years=3)
-    yearly_spending = bookings.filter(
-        status__in=['confirmed', 'completed'],
-        created_at__gte=three_years_ago
-    ).annotate(
-        year=TruncYear('created_at')
-    ).values('year').annotate(
-        amount=Sum('total_amount'),
-        count=Count('id')
-    ).order_by('year')
-    
-    yearly_spending_data = []
-    for item in yearly_spending:
-        yearly_spending_data.append({
-            'year': item['year'].year,
-            'amount': float(item['amount'] or 0),
-            'bookings': item['count']
-        })
-    
-    # Rental history with property details
-    rental_history = []
-    for booking in bookings.filter(booking_type='rental').order_by('-created_at')[:20]:
-        property_data = booking.property
-        rental_history.append({
-            'id': booking.id,
-            'property_id': property_data.id,
-            'property_title': property_data.title,
-            'property_address': property_data.address,
-            'property_city': property_data.city,
-            'property_type': property_data.property_type,
-            'monthly_rent': float(booking.monthly_rent),
-            'deposit': float(booking.deposit_amount),
-            'total_amount': float(booking.total_amount),
-            'start_date': booking.start_date.isoformat(),
-            'end_date': booking.end_date.isoformat() if booking.end_date else None,
-            'status': booking.status,
-            'created_at': booking.created_at.isoformat(),
-            'confirmed_at': booking.confirmed_at.isoformat() if booking.confirmed_at else None,
-        })
-    
-    # Upcoming payment reminders (for active rentals)
-    payment_reminders = []
-    for rental in active_rentals:
-        # Calculate next payment date (assuming monthly payments)
-        start_date = rental.start_date
-        today = datetime.now().date()
+    try:
+        logger.info(f"Starting renter_analytics for user: {request.user.id}")
+        user = request.user
         
-        # Find the next payment date
-        months_since_start = (today.year - start_date.year) * 12 + (today.month - start_date.month)
-        next_payment_date = start_date + relativedelta(months=months_since_start + 1)
+        if user.role != 'renter':
+            logger.warning(f"Non-renter user {user.id} attempted to access renter analytics")
+            return Response({'error': 'Only renters can access this endpoint'}, status=403)
         
-        # Only include if payment is due within next 30 days
-        days_until_payment = (next_payment_date - today).days
-        if 0 <= days_until_payment <= 30:
-            payment_reminders.append({
-                'property_id': rental.property.id,
-                'property_title': rental.property.title,
-                'property_address': rental.property.address,
-                'monthly_rent': float(rental.monthly_rent),
-                'next_payment_date': next_payment_date.isoformat(),
-                'days_until_payment': days_until_payment,
-                'is_urgent': days_until_payment <= 7,
-                'booking_id': rental.id
-            })
+        logger.debug(f"User {user.id} is a renter, proceeding with analytics")
     
-    # Sort reminders by urgency
-    payment_reminders.sort(key=lambda x: x['days_until_payment'])
+        # Get all bookings for the renter with debug logging
+        try:
+            logger.debug(f"Fetching bookings for user {user.id}")
+            bookings = Booking.objects.filter(renter=user).select_related('property')
+            logger.debug(f"Found {bookings.count()} bookings for user {user.id}")
+        except Exception as e:
+            logger.error(f"Error fetching bookings for user {user.id}: {str(e)}", exc_info=True)
+            raise
+        
+        # Overview statistics
+        total_bookings = bookings.count()
+        confirmed_bookings = bookings.filter(status='confirmed').count()
+        completed_bookings = bookings.filter(status='completed').count()
+        pending_bookings = bookings.filter(status='pending').count()
+        
+        # Calculate total spent with error handling
+        try:
+            total_spent_result = bookings.filter(
+                status__in=['confirmed', 'completed']
+            ).aggregate(total=Sum('total_amount'))
+            total_spent = float(total_spent_result['total'] or 0)
+            logger.debug(f"Calculated total spent: {total_spent}")
+        except Exception as e:
+            logger.error(f"Error calculating total spent: {str(e)}", exc_info=True)
+            total_spent = 0  # Default value in case of error
+        
+        # Get current time once for consistency
+        now = django_timezone.now()
+        today = now.date()
+        logger.debug(f"Current date: {today}")
+        
+        # Current active rentals with error handling
+        try:
+            active_rentals = bookings.filter(
+                status='confirmed',
+                booking_type='rental',
+                start_date__lte=today
+            ).filter(
+                Q(end_date__gte=today) | Q(end_date__isnull=True)
+            )
+            logger.debug(f"Found {active_rentals.count()} active rentals")
+        except Exception as e:
+            logger.error(f"Error finding active rentals: {str(e)}", exc_info=True)
+            active_rentals = bookings.none()  # Return empty queryset on error
     
-    # Spending by property type
-    spending_by_type = bookings.filter(
-        status__in=['confirmed', 'completed']
-    ).values('property__property_type').annotate(
-        total=Sum('total_amount'),
-        count=Count('id')
-    ).order_by('-total')
-    
-    spending_by_type_data = []
-    for item in spending_by_type:
-        spending_by_type_data.append({
-            'property_type': item['property__property_type'],
-            'total_spent': float(item['total'] or 0),
-            'bookings': item['count']
-        })
-    
-    # Average rent paid
-    avg_rent_paid = float(bookings.filter(
-        status__in=['confirmed', 'completed'],
-        booking_type='rental'
-    ).aggregate(Avg('monthly_rent'))['monthly_rent__avg'] or 0)
-    
-    # Favorite properties count
-    from properties.models import Favorite
-    favorites_count = Favorite.objects.filter(user=user).count()
-    
-    return Response({
-        'overview': {
-            'total_bookings': total_bookings,
-            'confirmed_bookings': confirmed_bookings,
-            'completed_bookings': completed_bookings,
-            'pending_bookings': pending_bookings,
-            'total_spent': total_spent,
-            'active_rentals': active_rentals.count(),
-            'avg_rent_paid': avg_rent_paid,
-            'favorites_count': favorites_count
-        },
-        'monthly_spending': monthly_spending_data,
-        'yearly_spending': yearly_spending_data,
-        'rental_history': rental_history,
-        'payment_reminders': payment_reminders,
-        'spending_by_type': spending_by_type_data
-    })
+        # Monthly spending (last 12 months)
+        try:
+            twelve_months_ago = now - relativedelta(months=12)
+            monthly_spending = bookings.filter(
+                status__in=['confirmed', 'completed'],
+                created_at__gte=twelve_months_ago
+            ).annotate(
+                month=TruncMonth('created_at')
+            ).values('month').annotate(
+                amount=Sum('total_amount'),
+                count=Count('id')
+            ).order_by('month')
+            
+            monthly_spending_data = []
+            for item in monthly_spending:
+                monthly_spending_data.append({
+                    'month': item['month'].strftime('%b %Y'),
+                    'amount': float(item['amount'] or 0),
+                    'bookings': item['count']
+                })
+        except Exception as e:
+            logger.error(f"Error calculating monthly spending: {str(e)}", exc_info=True)
+            monthly_spending_data = []
+        
+        # Yearly spending (last 3 years)
+        try:
+            three_years_ago = now - relativedelta(years=3)
+            yearly_spending = bookings.filter(
+                status__in=['confirmed', 'completed'],
+                created_at__gte=three_years_ago
+            ).annotate(
+                year=TruncYear('created_at')
+            ).values('year').annotate(
+                amount=Sum('total_amount'),
+                count=Count('id')
+            ).order_by('year')
+            
+            yearly_spending_data = []
+            for item in yearly_spending:
+                yearly_spending_data.append({
+                    'year': item['year'].year,
+                    'amount': float(item['amount'] or 0),
+                    'bookings': item['count']
+                })
+        except Exception as e:
+            logger.error(f"Error calculating yearly spending: {str(e)}", exc_info=True)
+            yearly_spending_data = []
+        
+        # Rental history with property details
+        rental_history = []
+        try:
+            for booking in bookings.filter(booking_type='rental').order_by('-created_at')[:20]:
+                property_data = booking.property
+                rental_history.append({
+                    'id': booking.id,
+                    'property_id': property_data.id,
+                    'property_title': property_data.title,
+                    'property_address': property_data.address,
+                    'property_city': property_data.city,
+                    'property_type': property_data.property_type,
+                    'monthly_rent': float(booking.monthly_rent),
+                    'deposit': float(booking.deposit_amount or 0),
+                    'total_amount': float(booking.total_amount or 0),
+                    'start_date': booking.start_date.isoformat() if booking.start_date else None,
+                    'end_date': booking.end_date.isoformat() if booking.end_date else None,
+                    'status': booking.status,
+                    'created_at': booking.created_at.isoformat() if booking.created_at else None,
+                    'confirmed_at': booking.confirmed_at.isoformat() if booking.confirmed_at else None,
+                })
+        except Exception as e:
+            logger.error(f"Error preparing rental history: {str(e)}", exc_info=True)
+            rental_history = []
+        
+        # Upcoming payment reminders (for active rentals)
+        payment_reminders = []
+        try:
+            for rental in active_rentals:
+                try:
+                    # Calculate next payment date (assuming monthly payments)
+                    start_date = rental.start_date
+                    if not start_date:
+                        continue
+                        
+                    # Find the next payment date
+                    months_since_start = (today.year - start_date.year) * 12 + (today.month - start_date.month)
+                    next_payment_date = start_date + relativedelta(months=months_since_start + 1)
+                    
+                    # Only include if payment is due within next 30 days
+                    days_until_payment = (next_payment_date - today).days
+                    if 0 <= days_until_payment <= 30:
+                        payment_reminders.append({
+                            'property_id': rental.property.id,
+                            'property_title': rental.property.title,
+                            'property_address': rental.property.address,
+                            'monthly_rent': float(rental.monthly_rent or 0),
+                            'next_payment_date': next_payment_date.isoformat(),
+                            'days_until_payment': days_until_payment,
+                            'is_urgent': days_until_payment <= 7,
+                            'booking_id': rental.id
+                        })
+                except Exception as e:
+                    logger.error(f"Error processing payment reminder for rental {rental.id}: {str(e)}", exc_info=True)
+                    continue
+            
+            # Sort reminders by urgency
+            payment_reminders.sort(key=lambda x: x['days_until_payment'])
+        except Exception as e:
+            logger.error(f"Error preparing payment reminders: {str(e)}", exc_info=True)
+            payment_reminders = []
+        
+        # Spending by property type
+        spending_by_type_data = []
+        try:
+            spending_by_type = bookings.filter(
+                status__in=['confirmed', 'completed']
+            ).values('property__property_type').annotate(
+                total=Sum('total_amount'),
+                count=Count('id')
+            ).order_by('-total')
+            
+            for item in spending_by_type:
+                spending_by_type_data.append({
+                    'property_type': item['property__property_type'],
+                    'total_spent': float(item['total'] or 0),
+                    'bookings': item['count']
+                })
+        except Exception as e:
+            logger.error(f"Error calculating spending by type: {str(e)}", exc_info=True)
+            spending_by_type_data = []
+        
+        # Calculate average rent paid with error handling
+        try:
+            avg_rent_result = bookings.filter(
+                status__in=['confirmed', 'completed'],
+                booking_type='rental'
+            ).aggregate(avg_rent=Avg('monthly_rent'))
+            avg_rent_paid = float(avg_rent_result['avg_rent'] or 0)
+            logger.debug(f"Calculated average rent: {avg_rent_paid}")
+        except Exception as e:
+            logger.error(f"Error calculating average rent: {str(e)}", exc_info=True)
+            avg_rent_paid = 0
+        
+        # Get favorite properties count with error handling
+        try:
+            from properties.models import Favorite
+            favorites_count = Favorite.objects.filter(user=user).count()
+            logger.debug(f"Found {favorites_count} favorite properties")
+        except Exception as e:
+            logger.error(f"Error counting favorites: {str(e)}", exc_info=True)
+            favorites_count = 0
+        
+        # Prepare response data
+        logger.debug("Preparing response data")
+        response_data = {
+            'overview': {
+                'total_bookings': total_bookings,
+                'confirmed_bookings': confirmed_bookings,
+                'completed_bookings': completed_bookings,
+                'pending_bookings': pending_bookings,
+                'total_spent': total_spent,
+                'active_rentals': active_rentals.count(),
+                'avg_rent_paid': avg_rent_paid,
+                'favorites_count': favorites_count
+            },
+            'monthly_spending': monthly_spending_data,
+            'yearly_spending': yearly_spending_data,
+            'rental_history': rental_history,
+            'payment_reminders': payment_reminders,
+            'spending_by_type': spending_by_type_data
+        }
+        
+        logger.info(f"Successfully generated analytics for user {user.id}")
+        return Response(response_data)
+        
+    except Exception as e:
+        logger.error(f"Error in renter_analytics for user {getattr(request.user, 'id', 'unknown')}: {str(e)}", exc_info=True)
+        return Response(
+            {'error': 'An error occurred while processing your request', 'details': str(e)},
+            status=500
+        )

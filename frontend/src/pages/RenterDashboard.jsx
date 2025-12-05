@@ -20,15 +20,30 @@ const RenterDashboard = () => {
 
   const loadDashboardData = async () => {
     try {
+      console.log('Fetching dashboard data...');
       const [bookingsData, favoritesData] = await Promise.all([
         bookingService.getBookings(),
         propertyService.getFavorites(),
       ]);
       
-      setBookings(bookingsData.results || bookingsData);
-      setFavorites(favoritesData.results || favoritesData);
+      console.log('Bookings data:', bookingsData);
+      console.log('Favorites data:', favoritesData);
+      
+      const processedBookings = Array.isArray(bookingsData) ? bookingsData : (bookingsData?.results || []);
+      const processedFavorites = Array.isArray(favoritesData) ? favoritesData : (favoritesData?.results || []);
+      
+      setBookings(processedBookings);
+      setFavorites(processedFavorites);
+      
+      if (processedBookings.length === 0) {
+        console.log('No bookings found for the current user');
+      }
+      if (processedFavorites.length === 0) {
+        console.log('No favorites found for the current user');
+      }
     } catch (error) {
       console.error('Error loading dashboard:', error);
+      // You might want to show an error message to the user here
     } finally {
       setLoading(false);
     }

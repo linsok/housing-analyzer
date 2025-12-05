@@ -18,6 +18,8 @@ const AddProperty = (props) => {
   const [images, setImages] = useState([]);
   const [imagePreviews, setImagePreviews] = useState([]);
   const [existingImages, setExistingImages] = useState([]);
+  const [qrCodeFile, setQrCodeFile] = useState(null);
+  const [qrCodePreview, setQrCodePreview] = useState('');
   const [formData, setFormData] = useState({
     title: '',
     description: '',
@@ -92,6 +94,18 @@ const AddProperty = (props) => {
       };
       reader.readAsDataURL(file);
     });
+  };
+
+  const handleQrCodeChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      setQrCodeFile(file);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setQrCodePreview(reader.result);
+      };
+      reader.readAsDataURL(file);
+    }
   };
 
   const removeImage = (index) => {
@@ -177,6 +191,11 @@ facilities: property.facilities ?
       return;
     }
 
+    if (!qrCodeFile && !editMode) {
+      toast.error('Please upload a QR code for payment');
+      return;
+    }
+
     // Check required fields
     const requiredFields = ['title', 'description', 'property_type', 'address', 'city', 'rent_price'];
     const missingFields = requiredFields.filter(field => !formData[field]);
@@ -225,6 +244,11 @@ facilities: property.facilities ?
           formDataToSend.append(key, value);
         }
       });
+
+      // Add QR code to FormData
+      if (qrCodeFile) {
+        formDataToSend.append('qr_code', qrCodeFile);
+      }
 
       // Add images to FormData (only for new uploads)
       images.forEach((image, index) => {
@@ -504,6 +528,58 @@ facilities: property.facilities ?
                         placeholder="1000"
                       />
                     </div>
+                  </div>
+                  
+                  {/* QR Code Upload */}
+                  <div className="pt-4">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Payment QR Code must be in $ (Required) *
+                    </label>
+                    <div className="flex items-center space-x-4">
+                      <label className="cursor-pointer bg-white py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500">
+                        {qrCodeFile ? 'Change QR Code' : 'Upload QR Code'}
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={handleQrCodeChange}
+                          className="sr-only"
+                          required={!editMode}
+                        />
+                      </label>
+                      {qrCodeFile && (
+                        <span className="text-sm text-gray-500">{qrCodeFile.name}</span>
+                      )}
+                    </div>
+                    
+                    {qrCodePreview && (
+                      <div className="mt-3">
+                        <p className="text-sm font-medium text-gray-700 mb-1">QR Code Preview:</p>
+                        <div className="inline-block p-2 border border-gray-200 rounded-lg bg-white">
+                          <img 
+                            src={qrCodePreview} 
+                            alt="QR Code Preview" 
+                            className="h-32 w-32 object-contain"
+                          />
+                        </div>
+                      </div>
+                    )}
+                    
+                    {!qrCodePreview && existingImages.some(img => img.is_qr_code) && (
+                      <div className="mt-3">
+                        <p className="text-sm font-medium text-gray-700 mb-1">Current QR Code:</p>
+                        <div className="inline-block p-2 border border-gray-200 rounded-lg bg-white">
+                          <img 
+                            src={existingImages.find(img => img.is_qr_code)?.image} 
+                            alt="Current QR Code" 
+                            className="h-32 w-32 object-contain"
+                          />
+                        </div>
+                      </div>
+                    )}
+                    
+                    <p className="mt-1 text-xs text-gray-500">
+                      Upload a QR code image that renters will use to make payments
+                    </p>
                   </div>
                 </>
               ) : (
