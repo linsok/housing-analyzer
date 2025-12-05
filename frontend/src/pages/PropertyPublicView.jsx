@@ -1,10 +1,17 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Star, Heart, MapPin, Bed, Bath, Ruler, Users, Home, Building, Hotel, Castle } from 'lucide-react';
+import { 
+  Star, Heart, MapPin, Bed, Bath, Ruler, Users, Home, 
+  Building, Hotel, Castle, X, Calendar, Clock, MessageCircle, 
+  Phone, Send, Loader2, CreditCard, CalendarCheck, UserPlus
+} from 'lucide-react';
 import { propertyService } from '../services/propertyService';
+import { bookingService } from '../services/bookingService';
 import { useAuthStore } from '../store/useAuthStore';
 import Button from '../components/ui/Button';
 import Loading from '../components/ui/Loading';
+import { toast } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
 const PropertyPublicView = () => {
   const { id } = useParams();
@@ -14,6 +21,24 @@ const PropertyPublicView = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const [showContactModal, setShowContactModal] = useState(false);
+  const [showBookingModal, setShowBookingModal] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [formData, setFormData] = useState({
+    name: '',
+    email: '',
+    phone: '',
+    message: '',
+    preferredDate: '',
+    preferredTime: '',
+    memberCount: '',
+    notes: ''
+  });
+  const [showBookNowModal, setShowBookNowModal] = useState(false);
+  const [availableTimeSlots] = useState([
+    '09:00', '10:00', '11:00', '14:00', '15:00', '16:00', '17:00'
+  ]);
 
   useEffect(() => {
     const fetchProperty = async () => {
@@ -43,17 +68,29 @@ const PropertyPublicView = () => {
       navigate('/login', { state: { from: `/properties/${id}` } });
       return;
     }
-    // Handle contact owner logic
-    console.log('Contacting owner for property:', property.id);
+    setShowContactModal(true);
   };
 
-  const handleSaveProperty = () => {
+  const handleSaveProperty = async () => {
     if (!isAuthenticated) {
       navigate('/login', { state: { from: `/properties/${id}` } });
       return;
     }
-    // Handle save property logic
-    console.log('Saving property:', property.id);
+    
+    setIsSaving(true);
+    try {
+      // Assuming you have a method to toggle favorite status
+      await propertyService.toggleFavorite(property.id);
+      toast.success(property.is_favorited ? 'Removed from saved properties' : 'Saved to your properties');
+      // Refresh property data to update the favorite status
+      const updatedProperty = await propertyService.getProperty(id);
+      setProperty(updatedProperty);
+    } catch (error) {
+      console.error('Error saving property:', error);
+      toast.error('Failed to save property. Please try again.');
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const handleBookViewing = () => {
@@ -61,9 +98,173 @@ const PropertyPublicView = () => {
       navigate('/login', { state: { from: `/properties/${id}/book` } });
       return;
     }
-    // Handle book viewing logic
-    console.log('Booking viewing for property:', property.id);
+    setShowBookingModal(true);
   };
+
+  const handleBookNow = () => {
+    if (!isAuthenticated) {
+      navigate('/login', { state: { from: `/properties/${id}/book-now` } });
+      return;
+    }
+    setShowBookNowModal(true);
+  };
+
+  const handleSubmitBookNow = async (e) => {
+    e.preventDefault();
+    if (!formData.preferredDate || !formData.phone || !formData.memberCount) {
+      toast.error('Please fill in all required fields');
+      return;
+    }
+
+    setIsSubmitting(true);
+    
+    try {
+      // Calculate deposit (50% of the price)
+      const depositAmount = (property.price_per_month * 0.5).toFixed(2);
+      
+      // Create the booking
+      const bookingData = {
+        property: property.id,
+        start_date: formData.preferredDate,
+        contact_phone: formData.phone,
+        member_count: formData.memberCount,
+        notes: formData.notes || '',
+        deposit_amount: depositAmount,
+        total_amount: property.price_per_month,
+        payment_intent: 'pending' // This would be replaced with actual payment intent ID in production
+      };
+
+      // Save the booking
+      await bookingService.createBooking(bookingData);
+      
+      toast.success(`Booking successful! A deposit of $${depositAmount} is required.`);
+      setShowBookNowModal(false);
+      setFormData(prev => ({
+        ...prev,
+        preferredDate: '',
+        phone: '',
+        memberCount: '',
+        notes: ''
+      }));
+    } catch (error) {
+      console.error('Error creating booking:', error);
+      toast.error(error.response?.data?.message || 'Failed to create booking. Please try again.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: value
+    }));
+  };
+
+  const handleSubmitContact = async (e) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+    
+    try {
+      // Send message to property owner
+      await bookingService.sendPropertyMessage(
+        property.id,
+        `Name: ${formData.name}\nEmail: ${formData.email}\nPhone: ${formData.phone}\n\nMessage: ${formData.message}`
+      );
+      
+      // Send email notification (if your backend supports it)
+      await bookingService.sendMessage({
+        property: property.id,
+        name: formData.name,
+        email: formData.email,
+        phone: formData.phone,
+        message: formData.message,
+        type: 'contact_owner'
+      });
+      
+      toast.success('Your message has been sent to the property owner!');
+      setShowContactModal(false);
+      setFormData(prev => ({
+        ...prev,
+        name: '',
+        email: '',
+        phone: '',
+        message: ''
+      }));
+    } catch (error) {
+      console.error('Error sending message:', error);
+      toast.error(error.response?.data?.message || 'Failed to send message. Please try again.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleSubmitBooking = async (e) => {
+    e.preventDefault();
+    if (!formData.preferredDate || !formData.preferredTime) {
+      toast.error('Please select both date and time for the viewing');
+      return;
+    }
+    
+    const visitTime = `${formData.preferredDate}T${formData.preferredTime}:00`;
+    
+    setIsSubmitting(true);
+    
+    try {
+      // First check availability
+      const availability = await bookingService.checkAvailability(
+        property.id, 
+        formData.preferredDate
+      );
+      
+      if (!availability.available) {
+        toast.error('The selected time slot is no longer available. Please choose another time.');
+        return;
+      }
+      
+      // Schedule the viewing
+      await bookingService.scheduleViewing(property.id, {
+        visit_time: visitTime,
+        notes: formData.message || 'I would like to book a viewing for this property.',
+        contact_info: {
+          name: formData.name || '',
+          email: formData.email || '',
+          phone: formData.phone || ''
+        }
+      });
+      
+      // Send confirmation email (if your backend supports it)
+      await bookingService.sendMessage({
+        property: property.id,
+        visit_time: visitTime,
+        message: formData.message || 'Viewing request',
+        type: 'viewing_request'
+      });
+      
+      toast.success('Viewing booked successfully! The owner will contact you soon to confirm.');
+      setShowBookingModal(false);
+      setFormData(prev => ({
+        ...prev,
+        preferredDate: '',
+        preferredTime: '',
+        message: ''
+      }));
+    } catch (error) {
+      console.error('Error booking viewing:', error);
+      const errorMessage = error.response?.data?.message || 'Failed to book viewing. Please try again.';
+      toast.error(errorMessage);
+      
+      // If the error is about time slot, refresh available slots
+      if (error.response?.status === 409) {
+        // You might want to refresh the page or available slots here
+      }
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const today = new Date().toISOString().split('T')[0];
 
   const getPropertyTypeIcon = (type) => {
     switch (type?.toLowerCase()) {
@@ -183,29 +384,392 @@ const PropertyPublicView = () => {
 
           {/* Action Buttons */}
           <div className="mt-8 flex flex-col sm:flex-row gap-4">
-            <Button 
-              variant="primary" 
-              className="w-full sm:w-auto"
-              onClick={handleBookViewing}
+            <div className="flex flex-col sm:flex-row gap-4 w-full">
+              <Button 
+                variant="primary" 
+                className="w-full sm:w-auto"
+                onClick={handleBookNow}
+              >
+                <CalendarCheck className="w-5 h-5 mr-2" />
+                Book Now
+              </Button>
+              {/* Book Now Modal */}
+{showBookNowModal && (
+  <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+    <div className="bg-white rounded-lg max-w-md w-full p-6 relative">
+      <button 
+        onClick={() => setShowBookNowModal(false)}
+        className="absolute top-4 right-4 text-gray-500 hover:text-gray-700"
+      >
+        <X className="w-6 h-6" />
+      </button>
+      
+      <h2 className="text-2xl font-bold mb-4">Book This Property</h2>
+      <p className="text-gray-600 mb-6">Please fill in the details to book this property. A 50% deposit is required.</p>
+      
+      <form onSubmit={handleSubmitBookNow} className="space-y-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label htmlFor="preferredDate" className="block text-sm font-medium text-gray-700 mb-1">
+              Move-in Date <span className="text-red-500">*</span>
+            </label>
+            <input
+              type="date"
+              id="preferredDate"
+              name="preferredDate"
+              min={today}
+              value={formData.preferredDate}
+              onChange={handleInputChange}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500"
+              required
+            />
+          </div>
+          
+          <div>
+            <label htmlFor="phone" className="block text-sm font-medium text-gray-700 mb-1">
+              Contact Phone <span className="text-red-500">*</span>
+            </label>
+            <input
+              type="tel"
+              id="phone"
+              name="phone"
+              value={formData.phone}
+              onChange={handleInputChange}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500"
+              required
+            />
+          </div>
+          
+          <div>
+            <label htmlFor="memberCount" className="block text-sm font-medium text-gray-700 mb-1">
+              Number of Occupants <span className="text-red-500">*</span>
+            </label>
+            <select
+              id="memberCount"
+              name="memberCount"
+              value={formData.memberCount}
+              onChange={handleInputChange}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500"
+              required
             >
-              Book Viewing
-            </Button>
+              <option value="">Select number of people</option>
+              {[1, 2, 3, 4, 5, '6+'].map(num => (
+                <option key={num} value={num}>{num} {num === 1 ? 'person' : 'people'}</option>
+              ))}
+            </select>
+          </div>
+          
+          <div className="md:col-span-2">
+            <label htmlFor="notes" className="block text-sm font-medium text-gray-700 mb-1">
+              Special Requests (Optional)
+            </label>
+            <textarea
+              id="notes"
+              name="notes"
+              rows="3"
+              value={formData.notes}
+              onChange={handleInputChange}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500"
+              placeholder="Any special requests or additional information..."
+            />
+          </div>
+          
+          <div className="md:col-span-2 bg-gray-50 p-4 rounded-md">
+            <h3 className="font-medium text-gray-900 mb-2">Pricing Summary</h3>
+            <div className="space-y-2 text-sm">
+              <div className="flex justify-between">
+                <span>Monthly Rent:</span>
+                <span>${property?.price_per_month}/month</span>
+              </div>
+              <div className="flex justify-between font-medium">
+                <span>Required Deposit (50%):</span>
+                <span>${property ? (property.price_per_month * 0.5).toFixed(2) : '0.00'}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <div className="flex justify-end space-x-3 pt-4">
+          <button
+            type="button"
+            onClick={() => setShowBookNowModal(false)}
+            className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
+            disabled={isSubmitting}
+          >
+            Cancel
+          </button>
+          <button
+            type="submit"
+            className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 flex items-center"
+            disabled={isSubmitting}
+          >
+            {isSubmitting ? (
+              <>
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                Processing...
+              </>
+            ) : (
+              <>
+                <CreditCard className="w-4 h-4 mr-2" />
+                Pay Deposit & Book
+              </>
+            )}
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+)}
+              <Button 
+                variant="outline" 
+                className="w-full sm:w-auto"
+                onClick={handleBookViewing}
+              >
+                <Calendar className="w-5 h-5 mr-2" />
+                Book Viewing
+              </Button>
             <Button 
               variant="outline" 
               className="w-full sm:w-auto"
               onClick={handleContactOwner}
             >
+              <MessageCircle className="w-5 h-5 mr-2" />
               Contact Owner
             </Button>
             <Button 
               variant="ghost" 
-              className="w-full sm:w-auto"
+              className={`w-full sm:w-auto ${property?.is_favorited ? 'text-red-500' : ''}`}
               onClick={handleSaveProperty}
+              disabled={isSaving}
             >
-              <Heart className="w-5 h-5 mr-2" />
-              Save
+              {isSaving ? (
+                <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+              ) : (
+                <Heart 
+                  className={`w-5 h-5 mr-2 ${property?.is_favorited ? 'fill-current' : ''}`} 
+                />
+              )}
+              {property?.is_favorited ? 'Saved' : 'Save'}
             </Button>
+            </div>
           </div>
+
+          {/* Contact Modal */}
+          {/* Contact Modal */}
+{showContactModal && (
+  <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+    <div className="bg-white rounded-lg max-w-md w-full p-6 relative">
+      <button 
+        onClick={() => setShowContactModal(false)}
+        className="absolute top-4 right-4 text-gray-500 hover:text-gray-700"
+      >
+        <X className="w-6 h-6" />
+      </button>
+      
+      <h2 className="text-2xl font-bold mb-4">Contact Property Owner</h2>
+      <p className="text-gray-600 mb-6">Send a message to the property owner about this listing.</p>
+      
+      <form onSubmit={handleSubmitContact} className="space-y-4">
+        <div>
+          <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1">
+            Your Name
+          </label>
+          <input
+            type="text"
+            id="name"
+            name="name"
+            value={formData.name}
+            onChange={handleInputChange}
+            className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500"
+            required
+          />
+        </div>
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
+              Email
+            </label>
+            <input
+              type="email"
+              id="email"
+              name="email"
+              value={formData.email}
+              onChange={handleInputChange}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500"
+              required
+            />
+          </div>
+          
+          <div>
+            <label htmlFor="phone" className="block text-sm font-medium text-gray-700 mb-1">
+              Phone Number
+            </label>
+            <input
+              type="tel"
+              id="phone"
+              name="phone"
+              value={formData.phone}
+              onChange={handleInputChange}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500"
+              required
+            />
+          </div>
+        </div>
+        
+        <div>
+          <label htmlFor="message" className="block text-sm font-medium text-gray-700 mb-1">
+            Message
+          </label>
+          <textarea
+            id="message"
+            name="message"
+            rows="4"
+            value={formData.message}
+            onChange={handleInputChange}
+            className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500"
+            placeholder="I'm interested in this property. Please provide more details."
+            required
+          />
+        </div>
+        
+        <div className="flex justify-end space-x-3 pt-2">
+          <button
+            type="button"
+            onClick={() => setShowContactModal(false)}
+            className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
+            disabled={isSubmitting}
+          >
+            Cancel
+          </button>
+          <button
+            type="submit"
+            className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 flex items-center"
+            disabled={isSubmitting}
+          >
+            {isSubmitting ? (
+              <>
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                Sending...
+              </>
+            ) : (
+              <>
+                <Send className="w-4 h-4 mr-2" />
+                Send Message
+              </>
+            )}
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+)}
+
+          {/* Booking Modal */}
+          {showBookingModal && (
+            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+              <div className="bg-white rounded-lg max-w-md w-full p-6 relative">
+                <button 
+                  onClick={() => setShowBookingModal(false)}
+                  className="absolute top-4 right-4 text-gray-500 hover:text-gray-700"
+                >
+                  <X className="w-6 h-6" />
+                </button>
+                
+                <h2 className="text-2xl font-bold mb-2">Book a Viewing</h2>
+                <p className="text-gray-600 mb-6">Schedule a visit to view this property.</p>
+                
+                <form onSubmit={handleSubmitBooking} className="space-y-4">
+                  <div>
+                    <label htmlFor="preferredDate" className="block text-sm font-medium text-gray-700 mb-1">
+                      Preferred Date
+                    </label>
+                    <input
+                      type="date"
+                      id="preferredDate"
+                      name="preferredDate"
+                      min={today}
+                      value={formData.preferredDate}
+                      onChange={handleInputChange}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500"
+                      required
+                    />
+                  </div>
+                  
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Preferred Time
+                    </label>
+                    <div className="grid grid-cols-3 gap-2">
+                      {availableTimeSlots.map((time) => (
+                        <button
+                          key={time}
+                          type="button"
+                          onClick={() => setFormData(prev => ({ ...prev, preferredTime: time }))}
+                          className={`py-2 px-3 text-sm rounded-md border ${
+                            formData.preferredTime === time
+                              ? 'bg-primary-100 border-primary-500 text-primary-700'
+                              : 'border-gray-300 hover:bg-gray-50'
+                          }`}
+                        >
+                          {time}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  
+                  <div>
+                    <label htmlFor="message" className="block text-sm font-medium text-gray-700 mb-1">
+                      Additional Notes (Optional)
+                    </label>
+                    <textarea
+                      id="message"
+                      name="message"
+                      rows="3"
+                      value={formData.message}
+                      onChange={handleInputChange}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500"
+                      placeholder="Any special requests or questions..."
+                    />
+                  </div>
+                  
+                  <div className="pt-2">
+                    <p className="text-sm text-gray-500 mb-4">
+                      By booking a viewing, you agree to our Terms of Service and Privacy Policy.
+                    </p>
+                    
+                    <div className="flex justify-end space-x-3">
+                      <button
+                        type="button"
+                        onClick={() => setShowBookingModal(false)}
+                        className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
+                        disabled={isSubmitting}
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        type="submit"
+                        className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 flex items-center"
+                        disabled={isSubmitting || !formData.preferredTime}
+                      >
+                        {isSubmitting ? (
+                          <>
+                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                            Booking...
+                          </>
+                        ) : (
+                          <>
+                            <Calendar className="w-4 h-4 mr-2" />
+                            Confirm Booking
+                          </>
+                        )}
+                      </button>
+                    </div>
+                  </div>
+                </form>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>

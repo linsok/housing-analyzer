@@ -588,7 +588,7 @@ const Properties = () => {
             </div>
             <Input
               type="text"
-              placeholder="Search by price, bedrooms, address, city, or any property detail..."
+              placeholder="Search"
               className="pl-10 w-full"
               value={filters.search}
               onChange={(e) => handleFilterChange('search', e.target.value)}

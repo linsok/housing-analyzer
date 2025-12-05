@@ -51,4 +51,50 @@ export const bookingService = {
     const response = await api.post(`/bookings/messages/${id}/mark_read/`);
     return response.data;
   },
+
+  // New methods for property viewings
+  async scheduleViewing(propertyId, data) {
+    const response = await api.post('/bookings/viewings/', {
+      property: propertyId,
+      ...data
+    });
+    return response.data;
+  },
+
+  async getViewings(params = {}) {
+    const response = await api.get('/bookings/viewings/', { params });
+    return response.data;
+  },
+
+  async getViewingRequests(propertyId) {
+    const response = await api.get(`/bookings/viewings/requests/${propertyId}/`);
+    return response.data;
+  },
+
+  async updateViewingStatus(id, status) {
+    const response = await api.patch(`/bookings/viewings/${id}/`, { status });
+    return response.data;
+  },
+
+  // Enhanced message handling
+  async sendPropertyMessage(propertyId, message) {
+    const response = await api.post('/bookings/messages/', {
+      property: propertyId,
+      content: message
+    });
+    return response.data;
+  },
+
+  async getPropertyMessages(propertyId) {
+    const response = await api.get(`/bookings/messages/property/${propertyId}/`);
+    return response.data;
+  },
+
+  // Availability checking
+  async checkAvailability(propertyId, date) {
+    const response = await api.get(`/bookings/availability/${propertyId}/`, {
+      params: { date }
+    });
+    return response.data;
+  }
 };

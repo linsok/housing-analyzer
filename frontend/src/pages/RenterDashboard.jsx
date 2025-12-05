@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Calendar, Heart, MessageSquare, CreditCard, TrendingUp } from 'lucide-react';
+import { Calendar, Heart, MessageSquare, CreditCard, TrendingUp, Phone, Clock, CheckCircle, XCircle } from 'lucide-react';
 import Card from '../components/ui/Card';
 import Badge from '../components/ui/Badge';
 import Button from '../components/ui/Button';
@@ -42,7 +42,19 @@ const RenterDashboard = () => {
       cancelled: 'error',
       rejected: 'error',
     };
-    return <Badge variant={variants[status] || 'default'}>{status}</Badge>;
+    const icons = {
+      pending: <Clock className="w-3 h-3" />,
+      confirmed: <CheckCircle className="w-3 h-3" />,
+      completed: <CheckCircle className="w-3 h-3" />,
+      cancelled: <XCircle className="w-3 h-3" />,
+      rejected: <XCircle className="w-3 h-3" />,
+    };
+    return (
+      <Badge variant={variants[status] || 'default'} className="flex items-center gap-1">
+        {icons[status]}
+        {status}
+      </Badge>
+    );
   };
 
   if (loading) return <Loading />;
@@ -130,7 +142,35 @@ const RenterDashboard = () => {
                             {formatCurrency(booking.total_amount)}
                           </div>
                         )}
+                        {booking.booking_type === 'visit' && booking.visit_time && (
+                          <div className="col-span-2">
+                            <span className="font-medium">Visit Time:</span>{' '}
+                            {new Date(booking.visit_time).toLocaleString()}
+                          </div>
+                        )}
                       </div>
+
+                      {/* Owner Contact Info */}
+                      {booking.property_details?.owner && (
+                        <div className="mb-3 p-3 bg-gray-50 rounded-lg">
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <div className="font-medium text-sm">Property Owner</div>
+                              <div className="text-sm text-gray-600">{booking.property_details.owner.full_name}</div>
+                            </div>
+                            {booking.property_details.owner.phone && (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => window.open(`tel:${booking.property_details.owner.phone}`)}
+                              >
+                                <Phone className="w-3 h-3 mr-1" />
+                                Call
+                              </Button>
+                            )}
+                          </div>
+                        </div>
+                      )}
 
                       <div className="flex gap-2">
                         <Link to={`/properties/${booking.property}`}>
@@ -148,6 +188,20 @@ const RenterDashboard = () => {
                             }}
                           >
                             Cancel
+                          </Button>
+                        )}
+                        {booking.status === 'confirmed' && booking.booking_type === 'visit' && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={async () => {
+                              if (confirm('Mark this visit as completed?')) {
+                                await bookingService.completeBooking(booking.id);
+                                loadDashboardData();
+                              }
+                            }}
+                          >
+                            Mark Completed
                           </Button>
                         )}
                       </div>
