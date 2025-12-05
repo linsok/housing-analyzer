@@ -56,8 +56,16 @@ const Properties = () => {
     min_price: searchParams.get('min_price') || '',
     max_price: searchParams.get('max_price') || '',
     min_bedrooms: searchParams.get('min_bedrooms') || '',
+    min_size: searchParams.get('min_size') || '',
+    max_size: searchParams.get('max_size') || '',
     is_furnished: searchParams.get('is_furnished') || '',
     pets_allowed: searchParams.get('pets_allowed') || '',
+    availability_status: searchParams.get('availability_status') || '',
+    rental_type: searchParams.get('rental_type') || '',
+    owner_name: searchParams.get('owner_name') || '',
+    posted_date_from: searchParams.get('posted_date_from') || '',
+    posted_date_to: searchParams.get('posted_date_to') || '',
+    sort_by: searchParams.get('sort_by') || 'relevance',
   });
 
   useEffect(() => {
@@ -82,50 +90,20 @@ const Properties = () => {
         property.verification_status === 'verified'
       );
       
-      // Apply client-side search filtering if search term exists
+      // Apply advanced search filtering
       if (filters.search) {
-        allProperties = allProperties.filter(property => {
-          const searchTerm = filters.search.toLowerCase();
-          
-          // Search in basic string fields
-          const stringFields = [
-            property.title || '',
-            property.description || '',
-            property.address || '',
-            property.city || '',
-            property.property_type || '',
-            property.neighborhood || '',
-            property.district || '',
-            property.province || ''
-          ].join(' ').toLowerCase();
-          
-          // Search in numeric fields (convert to string)
-          const numericFields = [
-            property.rent_price || '',
-            property.bedrooms || '',
-            property.bathrooms || '',
-            property.area_sqm || '',
-            property.floor_number || ''
-          ].join(' ').toLowerCase();
-          
-          // Search in boolean fields (convert to string)
-          const booleanFields = [
-            property.is_furnished ? 'furnished' : '',
-            !property.is_furnished ? 'unfurnished' : '',
-            property.pets_allowed ? 'pets' : '',
-            property.parking_available ? 'parking' : '',
-            property.air_conditioning ? 'ac air conditioning' : '',
-            property.swimming_pool ? 'pool' : '',
-            property.gym ? 'gym fitness' : ''
-          ].join(' ').toLowerCase();
-          
-          // Combine all searchable content
-          const searchableContent = `${stringFields} ${numericFields} ${booleanFields}`;
-          
-          // Check if search term matches any part of the content
-          return searchableContent.includes(searchTerm);
-        });
+        allProperties = allProperties.filter(property => 
+          propertyMatchesAdvancedSearch(property, filters.search)
+        );
       }
+      
+      // Apply all other filters
+      allProperties = allProperties.filter(property => 
+        propertyMatchesFilters(property, filters)
+      );
+      
+      // Apply sorting
+      allProperties = applySorting(allProperties, filters.sort_by || 'relevance');
       
       setProperties(allProperties);
     } catch (error) {
@@ -134,6 +112,16 @@ const Properties = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleSearchKeyPress = (e) => {
+    if (e.key === 'Enter') {
+      applyFilters();
+    }
+  };
+
+  const handleFilterChange = (fieldName, value) => {
+    setFilters({ ...filters, [fieldName]: value });
   };
 
   const loadRecommendedProperties = async () => {
@@ -147,14 +135,380 @@ const Properties = () => {
     }
   };
 
-  const handleSearchKeyPress = (e) => {
-    if (e.key === 'Enter') {
-      applyFilters();
-    }
+  // Advanced search utilities
+  const normalizeText = (text) => {
+    return text.toLowerCase()
+      .replace(/\s+/g, ' ')           // Replace multiple spaces with single space
+      .trim()                         // Remove leading/trailing spaces
+      .replace(/[^\w\s]/g, '');       // Remove special characters
   };
 
-  const handleFilterChange = (fieldName, value) => {
-    setFilters({ ...filters, [fieldName]: value });
+  const getSynonyms = (term) => {
+    const synonyms = {
+      'apt': 'apartment',
+      'apts': 'apartment',
+      'condo': 'condominium',
+      'condos': 'condominium',
+      'villa': 'house',
+      'villas': 'house',
+      'studio': 'apartment',
+      'studios': 'apartment',
+      'flat': 'apartment',
+      'flats': 'apartment',
+      'br': 'bedroom',
+      'bdr': 'bedroom',
+      'bdrm': 'bedroom',
+      'bath': 'bathroom',
+      'ba': 'bathroom',
+      'sqm': 'area',
+      'm2': 'area',
+      'rent': 'rental',
+      'renting': 'rental',
+      'furnish': 'furnished',
+      'unfurnish': 'unfurnished'
+    };
+    return synonyms[term.toLowerCase()] || term;
+  };
+
+  const tokenizeAndNormalize = (text) => {
+    const stopWords = ['for', 'in', 'on', 'at', 'the', 'a', 'an', 'and', 'or', 'with', 'to', 'of'];
+    
+    return text.toLowerCase()
+      .replace(/[^\w\s]/g, ' ')           // Replace special chars with space
+      .split(/\s+/)                        // Split into words
+      .map(word => word.trim())            // Trim each word
+      .filter(word => word.length > 0)     // Remove empty strings
+      .filter(word => !stopWords.includes(word)) // Remove stop words
+      .map(word => getSynonyms(word))      // Replace synonyms
+      .join(' ');
+  };
+
+  const fuzzyMatch = (text, searchTerms, tolerance = 1) => {
+    const words = text.toLowerCase().split(/\s+/);
+    return searchTerms.every(searchTerm => {
+      return words.some(word => {
+        if (word.includes(searchTerm)) return true;
+        
+        // Simple fuzzy matching - allow up to tolerance character differences
+        if (Math.abs(word.length - searchTerm.length) <= tolerance) {
+          let differences = 0;
+          const maxLength = Math.max(word.length, searchTerm.length);
+          for (let i = 0; i < maxLength; i++) {
+            if (word[i] !== searchTerm[i]) differences++;
+            if (differences > tolerance) return false;
+          }
+          return true;
+        }
+        return false;
+      });
+    });
+  };
+
+  const propertyMatchesAdvancedSearch = (property, searchTerm) => {
+    if (!searchTerm) return true;
+    
+    // Step 1: Normalize search text (lowercase, trim, remove special characters)
+    const normalizedSearch = normalizeText(searchTerm);
+    
+    // Step 2: Tokenize search text (split words, remove stopwords)
+    const tokenizedSearch = tokenizeAndNormalize(searchTerm);
+    const searchTerms = tokenizedSearch.split(/\s+/).filter(term => term.length > 0);
+    
+    // Step 3: Build combined searchable content from all property fields
+    const searchableFields = [
+      // Text fields for keyword search
+      property.title || '',
+      property.description || '',
+      property.city || '',
+      property.district || '',
+      property.address || '',
+      property.neighborhood || '',
+      property.province || '',
+      property.area || '',
+      property.property_type || '',
+      
+      // Numeric keyword matches
+      (property.bedrooms ? `${property.bedrooms}br` : ''),
+      (property.bedrooms ? `${property.bedrooms} bdr` : ''),
+      (property.bedrooms ? `${property.bedrooms} bdrm` : ''),
+      (property.bedrooms ? `${property.bedrooms} bedroom` : ''),
+      (property.bedrooms ? `${property.bedrooms} bedrooms` : ''),
+      (property.bathrooms ? `${property.bathrooms}bath` : ''),
+      (property.bathrooms ? `${property.bathrooms} ba` : ''),
+      (property.bathrooms ? `${property.bathrooms} bathroom` : ''),
+      (property.bathrooms ? `${property.bathrooms} bathrooms` : ''),
+      
+      // Area shorthand matches
+      (property.area_sqm ? `${property.area_sqm}sqm` : ''),
+      (property.area_sqm ? `${property.area_sqm} m2` : ''),
+      (property.area_sqm ? `${property.area_sqm}m2` : ''),
+      (property.area_sqm ? `${property.area_sqm} sqm` : ''),
+      (property.area_sqm ? `${property.area_sqm} square meters` : ''),
+      
+      // Price keyword matches
+      (property.rent_price ? `$${property.rent_price}` : ''),
+      (property.rent_price ? `${property.rent_price}$` : ''),
+      (property.rent_price ? `${property.rent_price} dollars` : ''),
+      (property.rent_price ? `${property.rent_price} price` : ''),
+      
+      // Amenity keyword matches
+      (property.is_furnished ? 'furnished' : ''),
+      (property.is_furnished ? 'fully furnished' : ''),
+      (!property.is_furnished ? 'unfurnished' : ''),
+      (property.pets_allowed ? 'pets allowed' : ''),
+      (property.pets_allowed ? 'pet friendly' : ''),
+      (property.parking_available ? 'parking' : ''),
+      (property.parking_available ? 'parking available' : ''),
+      (property.air_conditioning ? 'ac' : ''),
+      (property.air_conditioning ? 'air conditioning' : ''),
+      (property.air_conditioning ? 'aircon' : ''),
+      (property.swimming_pool ? 'pool' : ''),
+      (property.swimming_pool ? 'swimming pool' : ''),
+      (property.gym ? 'gym' : ''),
+      (property.gym ? 'fitness' : ''),
+      (property.gym ? 'gymnasium' : ''),
+      
+      // Additional fields for comprehensive search
+      (property.floor_number ? `floor ${property.floor_number}` : ''),
+      (property.floor_number ? `level ${property.floor_number}` : ''),
+      (property.deposit ? `deposit $${property.deposit}` : ''),
+      (property.availability_status ? property.availability_status : ''),
+      (property.rental_type ? property.rental_type : ''),
+    ];
+    
+    const combinedContent = searchableFields.join(' ').toLowerCase();
+    const normalizedContent = normalizeText(combinedContent);
+    const tokenizedContent = tokenizeAndNormalize(combinedContent);
+    
+    // Step 4: Exact match - check if normalized content contains normalized search text
+    const exactMatch = normalizedContent.includes(normalizedSearch);
+    
+    // Step 5: Token match - all search terms must exist inside tokenized content
+    const tokenMatch = searchTerms.every(term => tokenizedContent.includes(term));
+    
+    // Step 6: Fuzzy match - words allowed ±1 character difference
+    const fuzzyMatchResult = fuzzyMatch(combinedContent, searchTerms);
+    
+    // Step 7: Specialized keyword matching
+    
+    // Bedroom shorthand match (br, bdr, bdrm)
+    const bedroomMatch = searchTerms.some(term => {
+      const bedroomRegex = /(\d+)br?|bdr?m?|bedroom?s?/;
+      const match = term.match(bedroomRegex);
+      if (match && property.bedrooms) {
+        return property.bedrooms >= parseInt(match[1]);
+      }
+      return false;
+    });
+    
+    // Area shorthand match (sqm, m2)
+    const areaMatch = searchTerms.some(term => {
+      const areaRegex = /(\d+)(sqm|m2)/;
+      const match = term.match(areaRegex);
+      if (match && property.area_sqm) {
+        const searchArea = parseInt(match[1]);
+        return Math.abs(property.area_sqm - searchArea) <= 10; // Allow 10sqm tolerance
+      }
+      return false;
+    });
+    
+    // Price keyword match ($500, 700$)
+    const priceMatch = searchTerms.some(term => {
+      const priceRegex = /\$?(\d+)\$?/;
+      const match = term.match(priceRegex);
+      if (match && property.rent_price) {
+        const searchPrice = parseInt(match[1]);
+        return Math.abs(property.rent_price - searchPrice) <= 100; // Allow $100 tolerance
+      }
+      return false;
+    });
+    
+    // Amenity keyword match (furnished, pool, parking)
+    const amenityMatch = searchTerms.some(term => {
+      const amenities = [
+        { term: 'furnished', check: property.is_furnished },
+        { term: 'unfurnished', check: !property.is_furnished },
+        { term: 'pool', check: property.swimming_pool },
+        { term: 'parking', check: property.parking_available },
+        { term: 'ac', check: property.air_conditioning },
+        { term: 'aircon', check: property.air_conditioning },
+        { term: 'gym', check: property.gym },
+        { term: 'fitness', check: property.gym },
+        { term: 'pets', check: property.pets_allowed },
+        { term: 'pet', check: property.pets_allowed }
+      ];
+      
+      return amenities.some(amenity => 
+        term.includes(amenity.term) && amenity.check
+      );
+    });
+    
+    // Boolean keyword match ("pets allowed", "ac", "gym")
+    const booleanMatch = searchTerms.some(term => {
+      const booleanPhrases = [
+        { phrase: 'pets allowed', check: property.pets_allowed },
+        { phrase: 'pet friendly', check: property.pets_allowed },
+        { phrase: 'air conditioning', check: property.air_conditioning },
+        { phrase: 'parking available', check: property.parking_available },
+        { phrase: 'swimming pool', check: property.swimming_pool }
+      ];
+      
+      return booleanPhrases.some(item => 
+        term.includes(item.phrase) && item.check
+      );
+    });
+    
+    // Return true if any matching strategy succeeds
+    return (
+      exactMatch || 
+      tokenMatch || 
+      fuzzyMatchResult || 
+      bedroomMatch || 
+      areaMatch || 
+      priceMatch || 
+      amenityMatch || 
+      booleanMatch
+    );
+  };
+
+  const propertyMatchesFilters = (property, filters) => {
+    // Location filters - Partial match
+    if (filters.city && !normalizeText(property.city || '').includes(normalizeText(filters.city))) {
+      return false;
+    }
+    
+    if (filters.address) {
+      const normalizedAddress = normalizeText(filters.address);
+      const addressFields = [
+        property.address || '',
+        property.neighborhood || '',
+        property.district || '',
+        property.area || ''
+      ].join(' ');
+      
+      if (!normalizeText(addressFields).includes(normalizedAddress)) {
+        return false;
+      }
+    }
+    
+    // Property type - Exact match
+    if (filters.property_type && property.property_type !== filters.property_type) {
+      return false;
+    }
+    
+    // Price range - Between min & max
+    if (filters.min_price && (!property.rent_price || property.rent_price < parseFloat(filters.min_price))) {
+      return false;
+    }
+    
+    if (filters.max_price && (!property.rent_price || property.rent_price > parseFloat(filters.max_price))) {
+      return false;
+    }
+    
+    // Bedrooms - Always ≥ selected
+    if (filters.min_bedrooms && (!property.bedrooms || property.bedrooms < parseInt(filters.min_bedrooms))) {
+      return false;
+    }
+    
+    // Size - Range numeric
+    if (filters.min_size && (!property.area_sqm || property.area_sqm < parseFloat(filters.min_size))) {
+      return false;
+    }
+    
+    if (filters.max_size && (!property.area_sqm || property.area_sqm > parseFloat(filters.max_size))) {
+      return false;
+    }
+    
+    // Amenities - Multiple AND filters
+    if (filters.is_furnished === 'true' && !property.is_furnished) {
+      return false;
+    }
+    
+    if (filters.is_furnished === 'false' && property.is_furnished) {
+      return false;
+    }
+    
+    if (filters.pets_allowed === 'true' && !property.pets_allowed) {
+      return false;
+    }
+    
+    if (filters.pets_allowed === 'false' && property.pets_allowed) {
+      return false;
+    }
+    
+    // Status - Exact match
+    if (filters.availability_status && property.availability_status !== filters.availability_status) {
+      return false;
+    }
+    
+    // Rental type - Exact match
+    if (filters.rental_type && property.rental_type !== filters.rental_type) {
+      return false;
+    }
+    
+    // Owner - Partial match
+    if (filters.owner_name) {
+      const ownerFields = [
+        property.owner_name || '',
+        property.owner_email || '',
+        property.owner_phone || ''
+      ].join(' ');
+      
+      if (!normalizeText(ownerFields).includes(normalizeText(filters.owner_name))) {
+        return false;
+      }
+    }
+    
+    // Posted date - Range
+    if (filters.posted_date_from && property.created_at) {
+      const postedDate = new Date(property.created_at);
+      const fromDate = new Date(filters.posted_date_from);
+      if (postedDate < fromDate) return false;
+    }
+    
+    if (filters.posted_date_to && property.created_at) {
+      const postedDate = new Date(property.created_at);
+      const toDate = new Date(filters.posted_date_to);
+      if (postedDate > toDate) return false;
+    }
+    
+    return true;
+  };
+
+  const applySorting = (properties, sortBy) => {
+    const sorted = [...properties];
+    
+    switch (sortBy) {
+      case 'price_low':
+        return sorted.sort((a, b) => (a.rent_price || 0) - (b.rent_price || 0));
+      
+      case 'price_high':
+        return sorted.sort((a, b) => (b.rent_price || 0) - (a.rent_price || 0));
+      
+      case 'size_large':
+        return sorted.sort((a, b) => (b.area_sqm || 0) - (a.area_sqm || 0));
+      
+      case 'size_small':
+        return sorted.sort((a, b) => (a.area_sqm || 0) - (b.area_sqm || 0));
+      
+      case 'bedrooms_most':
+        return sorted.sort((a, b) => (b.bedrooms || 0) - (a.bedrooms || 0));
+      
+      case 'newest':
+        return sorted.sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
+      
+      case 'oldest':
+        return sorted.sort((a, b) => new Date(a.created_at || 0) - new Date(b.created_at || 0));
+      
+      case 'most_viewed':
+        return sorted.sort((a, b) => (b.view_count || 0) - (a.view_count || 0));
+      
+      case 'most_favorited':
+        return sorted.sort((a, b) => (b.favorite_count || 0) - (a.favorite_count || 0));
+      
+      default: // 'relevance' or any default
+        return sorted;
+    }
   };
 
   const applyFilters = () => {
@@ -174,8 +528,16 @@ const Properties = () => {
       min_price: '',
       max_price: '',
       min_bedrooms: '',
+      min_size: '',
+      max_size: '',
       is_furnished: '',
       pets_allowed: '',
+      availability_status: '',
+      rental_type: '',
+      owner_name: '',
+      posted_date_from: '',
+      posted_date_to: '',
+      sort_by: 'relevance',
     });
     setSearchParams({});
   };
@@ -280,6 +642,7 @@ const Properties = () => {
                 <option value="villa">Villa</option>
                 <option value="condo">Condo</option>
                 <option value="studio">Studio</option>
+                <option value="room">Room</option>
               </select>
             </div>
 

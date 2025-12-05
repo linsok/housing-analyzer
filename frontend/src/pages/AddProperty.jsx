@@ -168,6 +168,10 @@ facilities: property.facilities ?
   const handleSubmit = async (e) => {
     e.preventDefault();
     
+    console.log('Form submission started');
+    console.log('Images length:', images.length);
+    console.log('Form data:', formData);
+    
     if (!editMode && images.length === 0) {
       toast.error('Please upload at least one image');
       return;
@@ -179,6 +183,8 @@ facilities: property.facilities ?
     
     if (missingFields.length > 0) {
       toast.error(`Please fill in all required fields: ${missingFields.join(', ')}`);
+      console.log('Missing fields:', missingFields);
+      console.log('Form data:', formData);
       return;
     }
 
@@ -252,12 +258,19 @@ facilities: property.facilities ?
         error: error,
         response: error.response?.data,
         status: error.response?.status,
+        message: error.message
       });
       
-      const errorMessage = error.response?.data?.detail || 
-                         error.response?.data?.message || 
-                         error.message || 
-                         'An error occurred while saving the property';
+      // Log the full error response for debugging
+      console.log('Full error response:', error.response);
+      console.log('Error data:', JSON.stringify(error.response?.data, null, 2));
+      
+      // Show more specific error message
+      const errorMessage = error.response?.data?.message || 
+                          error.response?.data?.detail || 
+                          error.response?.data?.images?.[0] || 
+                          error.message || 
+                          'Failed to create property. Please try again.';
       
       toast.error(errorMessage);
     } finally {

@@ -3,18 +3,45 @@ import { Link } from 'react-router-dom';
 import { propertyService } from '../services/propertyService';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
-import { FaEdit, FaTrash, FaPlus, FaEye, FaSearch, FaTimes } from 'react-icons/fa';
+import { FaEdit, FaTrash, FaPlus, FaEye, FaSearch, FaTimes, FaHeart, FaPlay, FaPause } from 'react-icons/fa';
+import { useAuthStore } from '../store/useAuthStore';
 
 const OwnerProperties = () => {
+  const { user } = useAuthStore();
   const [properties, setProperties] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [deleteConfirm, setDeleteConfirm] = useState(null);
   const [viewProperty, setViewProperty] = useState(null);
+  const [userProfile, setUserProfile] = useState(null);
 
   useEffect(() => {
     loadProperties();
+    loadUserProfile();
   }, []);
+
+  const loadUserProfile = async () => {
+    try {
+      // Get current user profile
+      const response = await fetch('/api/auth/profile/', {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        }
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to load profile');
+      }
+      
+      const data = await response.json();
+      console.log('User profile loaded:', data); // Debug log
+      setUserProfile(data);
+    } catch (error) {
+      console.error('Error loading user profile:', error);
+      // Set userProfile to null to ensure verification check fails
+      setUserProfile(null);
+    }
+  };
 
   // Debug: Log property data when it changes
   useEffect(() => {
@@ -59,6 +86,97 @@ const OwnerProperties = () => {
 
   const handleViewProperty = (property) => {
     setViewProperty(property);
+  };
+
+  const handleFavoriteToggle = async (propertyId) => {
+    try {
+      const response = await propertyService.toggleFavorite(propertyId);
+      // Update the property in the list to reflect the new favorite status
+      setProperties(properties.map(property => 
+        property.id === propertyId 
+          ? { ...property, is_favorited: response.is_favorited, favorite_count: response.favorite_count || property.favorite_count }
+          : property
+      ));
+      toast.success(response.is_favorited ? 'Added to favorites' : 'Removed from favorites');
+    } catch (error) {
+      console.error('Error toggling favorite:', error);
+      toast.error('Failed to toggle favorite');
+    }
+  };
+
+  const handlePublishProperty = async (propertyId) => {
+    // Check if user profile is verified
+    console.log('Publish check - User profile:', userProfile);
+    console.log('Publish check - User verification status:', userProfile?.verification_status);
+    
+    if (!userProfile) {
+      toast.error('Please complete your profile setup before publishing properties.');
+      return;
+    }
+    
+    if (userProfile.verification_status !== 'verified') {
+      toast.error(`Your profile verification status is "${userProfile.verification_status}". Only verified profiles can publish properties. Please complete your profile verification.`);
+      return;
+    }
+
+    // Check property verification
+    const property = properties.find(p => p.id === propertyId);
+    console.log('Publish check - Property:', property);
+    console.log('Publish check - Property verification status:', property?.verification_status);
+    
+    if (property.verification_status !== 'verified') {
+      toast.error(`Property verification status is "${property.verification_status}". Only verified properties can be published.`);
+      return;
+    }
+
+    try {
+      const response = await propertyService.updatePropertyStatus(propertyId, 'available');
+      // Update the property in the list
+      setProperties(properties.map(property => 
+        property.id === propertyId 
+          ? { ...property, status: 'available' }
+          : property
+      ));
+      toast.success('Property published successfully!');
+    } catch (error) {
+      console.error('Error publishing property:', error);
+      toast.error('Failed to publish property');
+    }
+  };
+
+  const handleUnpublishProperty = async (propertyId) => {
+    try {
+      const response = await propertyService.updatePropertyStatus(propertyId, 'draft');
+      // Update the property in the list
+      setProperties(properties.map(property => 
+        property.id === propertyId 
+          ? { ...property, status: 'draft' }
+          : property
+      ));
+      toast.success('Property unpublished successfully!');
+    } catch (error) {
+      console.error('Error unpublishing property:', error);
+      toast.error('Failed to unpublish property');
+    }
+  };
+
+  const formatCambodiaTime = (dateString) => {
+    const date = new Date(dateString);
+    return date.toLocaleString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: true,
+      timeZone: 'Asia/Phnom_Penh'
+    });
+  };
+
+  const canPublishProperty = (property) => {
+    return userProfile && 
+           userProfile.verification_status === 'verified' && 
+           property.verification_status === 'verified';
   };
 
   const filteredProperties = Array.isArray(properties) 
@@ -262,6 +380,29 @@ const OwnerProperties = () => {
                               <FaEye className="h-5 w-5" />
                             </button>
                           )}
+                          {property.status === 'draft' && (
+                            <button
+                              type="button"
+                              onClick={() => handlePublishProperty(property.id)}
+                              disabled={!canPublishProperty(property)}
+                              className={`p-2 rounded-full ${
+                                canPublishProperty(property) 
+                                  ? 'text-green-600 hover:text-green-700' 
+                                  : 'text-gray-400 cursor-not-allowed'
+                              } focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500`}
+                              title={
+                                canPublishProperty(property) 
+                                  ? 'Publish property' 
+                                  : !userProfile
+                                    ? 'Profile setup required to publish'
+                                    : userProfile.verification_status !== 'verified'
+                                      ? `Profile verification required (Current: ${userProfile.verification_status})`
+                                      : `Property verification required (Current: ${property.verification_status})`
+                              }
+                            >
+                              <FaPlay className="h-5 w-5" />
+                            </button>
+                          )}
                           {canEditProperty(property.verification_status) ? (
                             <Link
                               to={`/edit-property/${property.id}`}
@@ -299,8 +440,9 @@ const OwnerProperties = () => {
                             <span className="ml-1">/month</span>
                           </div>
                         </div>
-                        <div className="flex items-center text-sm text-gray-500">
-                          <span>Created: {new Date(property.created_at).toLocaleDateString()}</span>
+                        <div className="flex flex-col items-end text-sm text-gray-500">
+                          <span>Created: {formatCambodiaTime(property.created_at)}</span>
+                          <span className="text-xs text-gray-400">Cambodia Time</span>
                         </div>
                       </div>
                     </div>

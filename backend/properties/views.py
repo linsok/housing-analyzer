@@ -65,6 +65,29 @@ class PropertyViewSet(viewsets.ModelViewSet):
         serializer = self.get_serializer(instance)
         return Response(serializer.data)
     
+    def create(self, request, *args, **kwargs):
+        """Create property with images"""
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        
+        # Create property first
+        property = serializer.save()
+        
+        # Handle images if provided
+        images = request.FILES.getlist('images')
+        if images:
+            for idx, image in enumerate(images):
+                PropertyImage.objects.create(
+                    property=property,
+                    image=image,
+                    order=idx,
+                    is_primary=(idx == 0)
+                )
+        
+        # Return property detail with images
+        detail_serializer = PropertyDetailSerializer(property, context={'request': request})
+        return Response(detail_serializer.data, status=status.HTTP_201_CREATED)
+    
     def get_client_ip(self, request):
         """Get client IP address"""
         x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')

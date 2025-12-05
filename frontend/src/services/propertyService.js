@@ -57,6 +57,11 @@ export const propertyService = {
     return response.data;
   },
 
+  async updatePropertyStatus(propertyId, status) {
+    const response = await api.patch(`/properties/${propertyId}/`, { status });
+    return response.data;
+  },
+
   async reportProperty(propertyId, data) {
     const response = await api.post('/properties/reports/', {
       property: propertyId,
