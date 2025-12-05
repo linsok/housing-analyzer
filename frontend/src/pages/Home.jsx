@@ -29,6 +29,12 @@ const Home = () => {
     }
   };
 
+  const handleSearchKeyPress = (e) => {
+    if (e.key === 'Enter') {
+      handleSearch(e);
+    }
+  };
+
   const handleSearch = (e) => {
     e.preventDefault();
     navigate(`/properties?search=${searchQuery}`);
@@ -57,6 +63,7 @@ const Home = () => {
                   className="w-full pl-12 pr-4 py-4 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-primary-300"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
+                  onKeyPress={handleSearchKeyPress}
                 />
               </div>
               <Button type="submit" size="lg" className="px-8">
