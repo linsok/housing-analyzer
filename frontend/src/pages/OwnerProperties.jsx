@@ -3,13 +3,14 @@ import { Link } from 'react-router-dom';
 import { propertyService } from '../services/propertyService';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
-import { FaEdit, FaTrash, FaPlus, FaEye, FaSearch } from 'react-icons/fa';
+import { FaEdit, FaTrash, FaPlus, FaEye, FaSearch, FaTimes } from 'react-icons/fa';
 
 const OwnerProperties = () => {
   const [properties, setProperties] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [deleteConfirm, setDeleteConfirm] = useState(null);
+  const [viewProperty, setViewProperty] = useState(null);
 
   useEffect(() => {
     loadProperties();
@@ -54,6 +55,10 @@ const OwnerProperties = () => {
       console.error('Error deleting property:', error);
       toast.error('Failed to delete property');
     }
+  };
+
+  const handleViewProperty = (property) => {
+    setViewProperty(property);
   };
 
   const filteredProperties = Array.isArray(properties) 
@@ -247,6 +252,16 @@ const OwnerProperties = () => {
                           </div>
                         </div>
                         <div className="ml-4 flex-shrink-0 flex space-x-2">
+                          {property.verification_status === 'verified' && (
+                            <button
+                              type="button"
+                              onClick={() => handleViewProperty(property)}
+                              className="p-2 rounded-full text-green-600 hover:text-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
+                              title="View property details"
+                            >
+                              <FaEye className="h-5 w-5" />
+                            </button>
+                          )}
                           {canEditProperty(property.verification_status) ? (
                             <Link
                               to={`/edit-property/${property.id}`}
@@ -296,6 +311,179 @@ const OwnerProperties = () => {
           )}
         </div>
       </div>
+
+      {/* Property View Modal */}
+      {viewProperty && (
+        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+          <div className="relative top-20 mx-auto p-5 border w-11/12 md:w-3/4 lg:w-1/2 shadow-lg rounded-md bg-white">
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-2xl font-bold text-gray-900">Property Details</h2>
+              <button
+                onClick={() => setViewProperty(null)}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                <FaTimes className="h-6 w-6" />
+              </button>
+            </div>
+
+            <div className="space-y-6">
+              {/* Basic Information */}
+              <div className="bg-gray-50 p-4 rounded-lg">
+                <h3 className="text-lg font-semibold mb-3 text-gray-800">Basic Information</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-sm font-medium text-gray-600">Title</label>
+                    <p className="text-gray-900">{viewProperty.title || 'N/A'}</p>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-gray-600">Property Type</label>
+                    <p className="text-gray-900">{viewProperty.property_type || 'N/A'}</p>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-gray-600">Status</label>
+                    <div className="mt-1">{getStatusBadge(viewProperty.status)}</div>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-gray-600">Verification Status</label>
+                    <div className="mt-1">{getVerificationBadge(viewProperty.verification_status)}</div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Location Information */}
+              <div className="bg-gray-50 p-4 rounded-lg">
+                <h3 className="text-lg font-semibold mb-3 text-gray-800">Location Information</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-sm font-medium text-gray-600">Address</label>
+                    <p className="text-gray-900">{viewProperty.address || 'N/A'}</p>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-gray-600">City</label>
+                    <p className="text-gray-900">{viewProperty.city || 'N/A'}</p>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-gray-600">Area/District</label>
+                    <p className="text-gray-900">{viewProperty.area || viewProperty.district || 'N/A'}</p>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-gray-600">Province</label>
+                    <p className="text-gray-900">{viewProperty.province || 'N/A'}</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Property Details */}
+              <div className="bg-gray-50 p-4 rounded-lg">
+                <h3 className="text-lg font-semibold mb-3 text-gray-800">Property Details</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-sm font-medium text-gray-600">Bedrooms</label>
+                    <p className="text-gray-900">{viewProperty.bedrooms || 'N/A'}</p>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-gray-600">Bathrooms</label>
+                    <p className="text-gray-900">{viewProperty.bathrooms || 'N/A'}</p>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-gray-600">Area Size</label>
+                    <p className="text-gray-900">{viewProperty.area_sqm || 'N/A'} sqm</p>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-gray-600">Floor Number</label>
+                    <p className="text-gray-900">{viewProperty.floor_number || 'N/A'}</p>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-gray-600">Rent Price</label>
+                    <p className="text-gray-900">${viewProperty.rent_price?.toLocaleString() || 'N/A'}/month</p>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-gray-600">Deposit</label>
+                    <p className="text-gray-900">${viewProperty.deposit?.toLocaleString() || 'N/A'}</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Amenities */}
+              <div className="bg-gray-50 p-4 rounded-lg">
+                <h3 className="text-lg font-semibold mb-3 text-gray-800">Amenities</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-sm font-medium text-gray-600">Furnished</label>
+                    <p className="text-gray-900">{viewProperty.is_furnished ? 'Yes' : 'No'}</p>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-gray-600">Pets Allowed</label>
+                    <p className="text-gray-900">{viewProperty.pets_allowed ? 'Yes' : 'No'}</p>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-gray-600">Parking Available</label>
+                    <p className="text-gray-900">{viewProperty.parking_available ? 'Yes' : 'No'}</p>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-gray-600">Air Conditioning</label>
+                    <p className="text-gray-900">{viewProperty.air_conditioning ? 'Yes' : 'No'}</p>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-gray-600">Swimming Pool</label>
+                    <p className="text-gray-900">{viewProperty.swimming_pool ? 'Yes' : 'No'}</p>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-gray-600">Gym/Fitness</label>
+                    <p className="text-gray-900">{viewProperty.gym ? 'Yes' : 'No'}</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Description */}
+              <div className="bg-gray-50 p-4 rounded-lg">
+                <h3 className="text-lg font-semibold mb-3 text-gray-800">Description</h3>
+                <p className="text-gray-900 whitespace-pre-wrap">{viewProperty.description || 'No description available'}</p>
+              </div>
+
+              {/* Property Images */}
+              {viewProperty.images && viewProperty.images.length > 0 && (
+                <div className="bg-gray-50 p-4 rounded-lg">
+                  <h3 className="text-lg font-semibold mb-3 text-gray-800">Property Images</h3>
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                    {viewProperty.images.map((image, index) => (
+                      <img
+                        key={index}
+                        src={image}
+                        alt={`Property image ${index + 1}`}
+                        className="w-full h-32 object-cover rounded-lg"
+                      />
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Additional Information */}
+              <div className="bg-gray-50 p-4 rounded-lg">
+                <h3 className="text-lg font-semibold mb-3 text-gray-800">Additional Information</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-sm font-medium text-gray-600">Property ID</label>
+                    <p className="text-gray-900">{viewProperty.id || 'N/A'}</p>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-gray-600">Created Date</label>
+                    <p className="text-gray-900">{viewProperty.created_at ? new Date(viewProperty.created_at).toLocaleDateString() : 'N/A'}</p>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-gray-600">Last Updated</label>
+                    <p className="text-gray-900">{viewProperty.updated_at ? new Date(viewProperty.updated_at).toLocaleDateString() : 'N/A'}</p>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-gray-600">View Count</label>
+                    <p className="text-gray-900">{viewProperty.view_count || 0} views</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

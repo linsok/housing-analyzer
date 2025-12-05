@@ -51,6 +51,7 @@ const Properties = () => {
   const [filters, setFilters] = useState({
     search: searchParams.get('search') || '',
     city: searchParams.get('city') || '',
+    address: searchParams.get('address') || '',
     property_type: searchParams.get('property_type') || '',
     min_price: searchParams.get('min_price') || '',
     max_price: searchParams.get('max_price') || '',
@@ -70,11 +71,63 @@ const Properties = () => {
     try {
       const params = {};
       Object.keys(filters).forEach(key => {
-        if (filters[key]) params[key] = filters[key];
+        if (filters[key] && key !== 'search') params[key] = filters[key];
       });
       
       const response = await propertyService.getProperties(params);
-      setProperties(response.results || response);
+      let allProperties = response.results || response;
+      
+      // Filter to show only verified properties
+      allProperties = allProperties.filter(property => 
+        property.verification_status === 'verified'
+      );
+      
+      // Apply client-side search filtering if search term exists
+      if (filters.search) {
+        allProperties = allProperties.filter(property => {
+          const searchTerm = filters.search.toLowerCase();
+          
+          // Search in basic string fields
+          const stringFields = [
+            property.title || '',
+            property.description || '',
+            property.address || '',
+            property.city || '',
+            property.property_type || '',
+            property.neighborhood || '',
+            property.district || '',
+            property.province || ''
+          ].join(' ').toLowerCase();
+          
+          // Search in numeric fields (convert to string)
+          const numericFields = [
+            property.rent_price || '',
+            property.bedrooms || '',
+            property.bathrooms || '',
+            property.area_sqm || '',
+            property.floor_number || ''
+          ].join(' ').toLowerCase();
+          
+          // Search in boolean fields (convert to string)
+          const booleanFields = [
+            property.is_furnished ? 'furnished' : '',
+            !property.is_furnished ? 'unfurnished' : '',
+            property.pets_allowed ? 'pets' : '',
+            property.parking_available ? 'parking' : '',
+            property.air_conditioning ? 'ac air conditioning' : '',
+            property.swimming_pool ? 'pool' : '',
+            property.gym ? 'gym fitness' : ''
+          ].join(' ').toLowerCase();
+          
+          // Combine all searchable content
+          const searchableContent = `${stringFields} ${numericFields} ${booleanFields}`;
+          
+          // Check if search term matches any part of the content
+          return searchableContent.includes(searchTerm);
+        });
+      }
+      
+      setProperties(allProperties);
     } catch (error) {
       console.error('Error loading properties:', error);
       setError(error.message || 'Failed to load properties');
@@ -94,9 +147,14 @@ const Properties = () => {
     }
   };
 
-  const handleFilterChange = (e) => {
-    const { name, value } = e.target;
-    setFilters({ ...filters, [name]: value });
+  const handleSearchKeyPress = (e) => {
+    if (e.key === 'Enter') {
+      applyFilters();
+    }
+  };
+
+  const handleFilterChange = (fieldName, value) => {
+    setFilters({ ...filters, [fieldName]: value });
   };
 
   const applyFilters = () => {
@@ -111,6 +169,7 @@ const Properties = () => {
     setFilters({
       search: '',
       city: '',
+      address: '',
       property_type: '',
       min_price: '',
       max_price: '',
@@ -167,10 +226,11 @@ const Properties = () => {
             </div>
             <Input
               type="text"
-              placeholder="Search by location, property type, or features..."
+              placeholder="Search by price, bedrooms, address, city, or any property detail..."
               className="pl-10 w-full"
               value={filters.search}
               onChange={(e) => handleFilterChange('search', e.target.value)}
+              onKeyPress={handleSearchKeyPress}
             />
           </div>
           <Button
@@ -189,8 +249,18 @@ const Properties = () => {
                 label="City"
                 name="city"
                 value={filters.city}
-                onChange={handleFilterChange}
+                onChange={(e) => handleFilterChange('city', e.target.value)}
                 placeholder="e.g., Phnom Penh"
+              />
+            </div>
+
+            <div>
+              <Input
+                label="Address/Area"
+                name="address"
+                value={filters.address}
+                onChange={(e) => handleFilterChange('address', e.target.value)}
+                placeholder="e.g., Sen Sok, Toul Kok, BKK"
               />
             </div>
 
@@ -202,7 +272,7 @@ const Properties = () => {
                 name="property_type"
                 value={filters.property_type}
                 onChange={(e) => handleFilterChange('property_type', e.target.value)}
-                className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm rounded-md"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
               >
                 <option value="">All Types</option>
                 <option value="apartment">Apartment</option>
@@ -213,62 +283,68 @@ const Properties = () => {
               </select>
             </div>
 
-            <Input
+            <div>
+              <Input
                 label="Min Price ($)"
                 type="number"
                 name="min_price"
                 value={filters.min_price}
-                onChange={handleFilterChange}
+                onChange={(e) => handleFilterChange('min_price', e.target.value)}
                 placeholder="0"
               />
+            </div>
 
+            <div>
               <Input
                 label="Max Price ($)"
                 type="number"
                 name="max_price"
                 value={filters.max_price}
-                onChange={handleFilterChange}
+                onChange={(e) => handleFilterChange('max_price', e.target.value)}
                 placeholder="10000"
               />
+            </div>
 
+            <div>
               <Input
                 label="Min Bedrooms"
                 type="number"
                 name="min_bedrooms"
                 value={filters.min_bedrooms}
-                onChange={handleFilterChange}
+                onChange={(e) => handleFilterChange('min_bedrooms', e.target.value)}
                 placeholder="1"
               />
+            </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Furnished
-                </label>
-                <select
-                  name="is_furnished"
-                  value={filters.is_furnished}
-                  onChange={handleFilterChange}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
-                >
-                  <option value="">Any</option>
-                  <option value="true">Furnished</option>
-                  <option value="false">Unfurnished</option>
-                </select>
-              </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Furnished
+              </label>
+              <select
+                name="is_furnished"
+                value={filters.is_furnished}
+                onChange={(e) => handleFilterChange('is_furnished', e.target.value)}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+              >
+                <option value="">Any</option>
+                <option value="true">Furnished</option>
+                <option value="false">Unfurnished</option>
+              </select>
+            </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Pets Allowed
-                </label>
-                <select
-                  name="pets_allowed"
-                  value={filters.pets_allowed}
-                  onChange={handleFilterChange}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
-                >
-                  <option value="">Any</option>
-                  <option value="true">Yes</option>
-                  <option value="false">No</option>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Pets Allowed
+              </label>
+              <select
+                name="pets_allowed"
+                value={filters.pets_allowed}
+                onChange={(e) => handleFilterChange('pets_allowed', e.target.value)}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+              >
+                <option value="">Any</option>
+                <option value="true">Yes</option>
+                <option value="false">No</option>
               </select>
             </div>
 
