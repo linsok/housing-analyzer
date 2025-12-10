@@ -10,17 +10,35 @@ const Login = () => {
   const navigate = useNavigate();
   const { login, loading, error } = useAuthStore();
   const [formData, setFormData] = useState({
-    username: '',
+    email: '',
     password: '',
   });
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      await login(formData.username, formData.password);
+      console.log('Attempting login with:', formData.email);
+      const result = await login(formData.email, formData.password);
+      console.log('Login successful, user:', result);
       navigate('/');
     } catch (error) {
-      console.error('Login error:', error);
+      console.error('Login error details:', {
+        status: error.response?.status,
+        data: error.response?.data,
+        message: error.message,
+        config: {
+          url: error.config?.url,
+          method: error.config?.method,
+          data: error.config?.data
+        }
+      });
+      
+      // Display more detailed error message to user
+      const errorMessage = error.response?.data?.detail || 
+                         error.response?.data?.message || 
+                         'Login failed. Please check your credentials and try again.';
+      
+      alert(`Login Error: ${errorMessage}`);
     }
   };
 
@@ -49,13 +67,13 @@ const Login = () => {
             )}
 
             <Input
-              label="Username"
-              type="text"
-              name="username"
-              value={formData.username}
+              label="Email Address"
+              type="email"
+              name="email"
+              value={formData.email}
               onChange={handleChange}
               required
-              autoComplete="username"
+              autoComplete="email"
             />
 
             <Input

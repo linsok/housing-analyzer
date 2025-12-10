@@ -1,4 +1,7 @@
 from rest_framework import serializers
+from django.core.exceptions import MultipleObjectsReturned
+from rest_framework.exceptions import AuthenticationFailed
+from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from django.contrib.auth import get_user_model
 from .models import UserPreference
 
@@ -86,3 +89,33 @@ class UserProfileSerializer(serializers.ModelSerializer):
             'preferences', 'created_at', 'updated_at'
         ]
         read_only_fields = ['verification_status', 'trust_score']
+
+
+class EmailTokenObtainPairSerializer(TokenObtainPairSerializer):
+    """Allow users to authenticate with their email address."""
+    email = serializers.EmailField(write_only=True)
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Username field is populated automatically once we resolve the email
+        self.fields[self.username_field].required = False
+
+    def validate(self, attrs):
+        email = attrs.pop('email', None)
+        password = attrs.get('password')
+
+        if not email:
+            raise serializers.ValidationError({'email': 'This field is required.'})
+        if not password:
+            raise serializers.ValidationError({'password': 'This field is required.'})
+
+        try:
+            user = User.objects.get(email=email)
+        except User.DoesNotExist:
+            raise AuthenticationFailed('No active account found with the given credentials')
+        except MultipleObjectsReturned:
+            raise AuthenticationFailed('No active account found with the given credentials')
+
+        attrs[self.username_field] = user.username
+
+        return super().validate(attrs)

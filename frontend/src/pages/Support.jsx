@@ -110,7 +110,7 @@ const Support = () => {
             <h3 className="text-xl font-semibold mb-2">Phone Support</h3>
             <p className="text-gray-600 mb-3">Call us directly</p>
             <a href="tel:+85512345678" className="text-primary-600 hover:text-primary-700 font-medium">
-              +855 12 345 678
+              +855 97 756 9023
             </a>
           </Card>
 
@@ -249,13 +249,13 @@ const Support = () => {
               Our support team is available Monday to Friday, 9:00 AM to 6:00 PM (Cambodia Time)
             </p>
             <div className="flex flex-wrap justify-center gap-4">
-              <a href="mailto:support@myrentor.com">
+              <a href="mailto:soklin1220lin@gmail.com?subject=Hello&body=I%20want%20to%20contact%20you">
                 <Button variant="primary">
                   <Mail className="w-5 h-5 mr-2" />
                   Email Us
                 </Button>
               </a>
-              <a href="tel:+85512345678">
+              <a href="tel:+855977569023">
                 <Button variant="outline">
                   <Phone className="w-5 h-5 mr-2" />
                   Call Us

@@ -1,18 +1,33 @@
 import api from './api';
 
 export const authService = {
-  async login(username, password) {
-    const response = await api.post('/auth/token/', { username, password });
-    const { access, refresh } = response.data;
-    
-    localStorage.setItem('access_token', access);
-    localStorage.setItem('refresh_token', refresh);
-    
-    // Get user profile
-    const userResponse = await api.get('/auth/users/profile/');
-    localStorage.setItem('user', JSON.stringify(userResponse.data));
-    
-    return userResponse.data;
+  async login(email, password) {
+    console.log('Sending login request with:', { email, password });
+    try {
+      const response = await api.post('/auth/token/', { 
+        email,
+        password 
+      });
+      console.log('Login response:', response.data);
+      
+      const { access, refresh } = response.data;
+      
+      localStorage.setItem('access_token', access);
+      localStorage.setItem('refresh_token', refresh);
+      
+      // Get user profile
+      const userResponse = await api.get('/auth/users/profile/');
+      localStorage.setItem('user', JSON.stringify(userResponse.data));
+      
+      return userResponse.data;
+    } catch (error) {
+      console.error('Login API error:', {
+        status: error.response?.status,
+        data: error.response?.data,
+        config: error.config
+      });
+      throw error;
+    }
   },
 
   async register(userData) {

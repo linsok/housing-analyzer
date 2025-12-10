@@ -7,10 +7,16 @@ from django.utils import timezone
 from .models import UserPreference
 from .serializers import (
     UserSerializer, UserRegistrationSerializer, UserVerificationSerializer,
-    AdminVerifyUserSerializer, UserPreferenceSerializer, UserProfileSerializer
+    AdminVerifyUserSerializer, UserPreferenceSerializer, UserProfileSerializer,
+    EmailTokenObtainPairSerializer
 )
 
 User = get_user_model()
+
+
+class EmailTokenObtainPairView(TokenObtainPairView):
+    """Token obtain pair view that authenticates users via email."""
+    serializer_class = EmailTokenObtainPairSerializer
 
 
 class UserViewSet(viewsets.ModelViewSet):

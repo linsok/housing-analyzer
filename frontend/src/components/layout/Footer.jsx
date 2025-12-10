@@ -45,11 +45,11 @@ const Footer = () => {
             <ul className="space-y-2 text-sm">
               <li className="flex items-center space-x-2">
                 <Mail className="w-4 h-4" />
-                <span>support@housinganalyzer.com</span>
+                <span>group05support@housinganalyzer.com</span>
               </li>
               <li className="flex items-center space-x-2">
                 <Phone className="w-4 h-4" />
-                <span>+855 12 345 678</span>
+                <span>+855 97 756 9023</span>
               </li>
               <li className="flex items-center space-x-2">
                 <MapPin className="w-4 h-4" />
@@ -61,7 +61,7 @@ const Footer = () => {
 
         <div className="border-t border-gray-800 mt-8 pt-8 text-sm text-center text-gray-400">
           <p>&copy; 2025 Housing & Rent Analyzer - Group 05. All rights reserved.</p>
-          <p className="mt-2">Built with ❤️ by Thoeun Soklin, Sov Sakura, Chhom Sodanith, Chhiv Sivmeng</p>
+          <p className="mt-2">Built with  by Thoeun Soklin, Sov Sakura, Chhom Sodanith, Chhiv Sivmeng</p>
         </div>
       </div>
     </footer>
