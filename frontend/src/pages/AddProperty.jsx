@@ -250,6 +250,14 @@ facilities: property.facilities ?
         formDataToSend.append('qr_code', qrCodeFile);
       }
 
+<<<<<<< HEAD
+=======
+      // Add images to FormData (only for new uploads)
+      images.forEach((image, index) => {
+        formDataToSend.append('images', image);
+      });
+
+>>>>>>> 7c874436be85f5b98e8af8e640a601d12e709099
       // If in edit mode, include existing image IDs to keep them
       if (editMode && existingImages.length > 0) {
         existingImages.forEach(image => {
