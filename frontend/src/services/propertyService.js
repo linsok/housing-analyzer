@@ -37,6 +37,13 @@ export const propertyService = {
     return response.data;
   },
 
+  async deleteImage(propertyId, imageId) {
+    const response = await api.delete(`/properties/${propertyId}/delete_image/`, {
+      data: { image_id: imageId }
+    });
+    return response.data;
+  },
+
   async toggleFavorite(propertyId) {
     const response = await api.post(`/properties/${propertyId}/toggle_favorite/`);
     return response.data;

@@ -108,6 +108,23 @@ const AddProperty = (props) => {
     }
   };
 
+  const removeExistingImage = async (index) => {
+    const imageToRemove = existingImages[index];
+    
+    try {
+      // Call the delete image endpoint
+      await propertyService.deleteImage(id, imageToRemove.id);
+      
+      // Remove from local state
+      setExistingImages(prev => prev.filter((_, i) => i !== index));
+      
+      toast.success('Image removed successfully');
+    } catch (error) {
+      console.error('Error removing image:', error);
+      toast.error('Failed to remove image');
+    }
+  };
+
   const removeImage = (index) => {
     setImages(prev => prev.filter((_, i) => i !== index));
     setImagePreviews(prev => prev.filter((_, i) => i !== index));
@@ -250,14 +267,6 @@ facilities: property.facilities ?
         formDataToSend.append('qr_code', qrCodeFile);
       }
 
-<<<<<<< HEAD
-=======
-      // Add images to FormData (only for new uploads)
-      images.forEach((image, index) => {
-        formDataToSend.append('images', image);
-      });
-
->>>>>>> 7c874436be85f5b98e8af8e640a601d12e709099
       // If in edit mode, include existing image IDs to keep them
       if (editMode && existingImages.length > 0) {
         existingImages.forEach(image => {
@@ -803,7 +812,7 @@ facilities: property.facilities ?
                   <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
                     <button
                       type="button"
-                      onClick={() => setExistingImages(prev => prev.filter((_, i) => i !== index))}
+                      onClick={() => removeExistingImage(index)}
                       className="bg-red-500 text-white p-2 rounded-full hover:bg-red-600"
                     >
                       Remove

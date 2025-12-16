@@ -141,6 +141,34 @@ class PropertyViewSet(viewsets.ModelViewSet):
         serializer = PropertyImageSerializer(created_images, many=True, context={'request': request})
         return Response(serializer.data, status=status.HTTP_201_CREATED)
     
+    @action(detail=True, methods=['delete'])
+    def delete_image(self, request, pk=None):
+        """Delete a specific image from a property"""
+        property_obj = self.get_object()
+        
+        if property_obj.owner != request.user:
+            return Response(
+                {'error': 'You can only delete images from your own properties'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
+        image_id = request.data.get('image_id')
+        if not image_id:
+            return Response(
+                {'error': 'Image ID is required'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        try:
+            image = property_obj.images.get(id=image_id)
+            image.delete()
+            return Response({'message': 'Image deleted successfully'})
+        except PropertyImage.DoesNotExist:
+            return Response(
+                {'error': 'Image not found'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+    
     @action(detail=True, methods=['post'])
     def toggle_favorite(self, request, pk=None):
         """Add or remove property from favorites"""
