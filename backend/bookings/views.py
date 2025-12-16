@@ -22,6 +22,110 @@ class BookingViewSet(viewsets.ModelViewSet):
         else:  # renter
             return Booking.objects.filter(renter=user)
     
+    @action(detail=False, methods=['post'])
+    def payment_with_transaction(self, request):
+        """Create booking with transaction receipt using proper payments system"""
+        from properties.models import Property
+        from users.models import User
+        from payments.models import Payment
+        
+        print("=== PAYMENT WITH TRANSACTION DEBUG ===")
+        print("Request data:", request.data)
+        print("Request files:", request.FILES)
+        print("User:", request.user)
+        
+        try:
+            # Extract data from FormData
+            property_id = request.data.get('property_id')
+            renter_id = request.data.get('renter_id')
+            transaction_image = request.FILES.get('transaction_image')
+            amount = request.data.get('amount')
+            
+            print(f"Extracted - property_id: {property_id}, renter_id: {renter_id}, amount: {amount}")
+            
+            if not all([property_id, renter_id, transaction_image, amount]):
+                error_msg = f"Missing required fields: property_id={property_id}, renter_id={renter_id}, transaction_image={transaction_image}, amount={amount}"
+                print(f"ERROR: {error_msg}")
+                return Response(
+                    {'error': error_msg},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            
+            # Validate property exists
+            try:
+                property = Property.objects.get(id=property_id)
+                print(f"Found property: {property.title}")
+            except Property.DoesNotExist:
+                error_msg = f"Property not found with id: {property_id}"
+                print(f"ERROR: {error_msg}")
+                return Response(
+                    {'error': error_msg},
+                    status=status.HTTP_404_NOT_FOUND
+                )
+            
+            # Validate renter exists
+            try:
+                renter = User.objects.get(id=renter_id)
+                print(f"Found renter: {renter.username}")
+            except User.DoesNotExist:
+                error_msg = f"User not found with id: {renter_id}"
+                print(f"ERROR: {error_msg}")
+                return Response(
+                    {'error': error_msg},
+                    status=status.HTTP_404_NOT_FOUND
+                )
+            
+            # Create booking first
+            print("Creating booking...")
+            booking = Booking.objects.create(
+                property=property,
+                renter=renter,
+                booking_type=request.data.get('booking_type', 'rental'),
+                start_date=request.data.get('preferredDate') or request.data.get('start_date'),
+                contact_phone=request.data.get('phone'),
+                member_count=request.data.get('memberCount', 1),
+                message=request.data.get('notes', ''),
+                deposit_amount=request.data.get('deposit_amount') or request.data.get('amount') or 0,
+                total_amount=request.data.get('total_amount') or request.data.get('amount') or 0,
+                status='pending_review',
+                transaction_image=transaction_image,
+                transaction_submitted_at=timezone.now()
+            )
+            
+            print(f"Booking created successfully: {booking.id}")
+            
+            # Create payment record
+            print("Creating payment record...")
+            payment = Payment.objects.create(
+                booking=booking,
+                user=renter,
+                amount=amount,
+                payment_method='qr_code',
+                status='pending',
+                payment_proof=transaction_image,
+                description=f'Deposit payment for {property.title}'
+            )
+            
+            print(f"Payment created successfully: {payment.id}")
+            
+            return Response({
+                'id': booking.id,
+                'payment_id': payment.id,
+                'status': booking.status,
+                'message': 'Booking and payment created successfully'
+            }, status=status.HTTP_201_CREATED)
+            
+        except Exception as e:
+            import traceback
+            error_msg = f"Exception occurred: {str(e)}"
+            print(f"ERROR: {error_msg}")
+            print("Full traceback:")
+            traceback.print_exc()
+            return Response(
+                {'error': error_msg},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
     @action(detail=True, methods=['post'])
     def confirm(self, request, pk=None):
         """Property owner confirms a booking"""

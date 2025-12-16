@@ -96,5 +96,58 @@ export const bookingService = {
       params: { date }
     });
     return response.data;
+  },
+
+  // Payment with transaction upload
+  async submitPaymentWithTransaction(formData) {
+    try {
+      console.log('=== BOOKING SERVICE DEBUG ===');
+      console.log('Submitting payment to /bookings/payment_with_transaction/');
+      
+      const response = await api.post('/bookings/payment_with_transaction/', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+      
+      console.log('Payment submission successful:', response.data);
+      return response.data;
+    } catch (error) {
+      console.error('=== BOOKING SERVICE ERROR ===');
+      console.error('Payment submission failed:', error);
+      console.error('Error response data:', error.response?.data);
+      console.error('Error status:', error.response?.status);
+      console.error('Error headers:', error.response?.headers);
+      
+      // Re-throw with enhanced error information
+      if (error.response?.data?.error) {
+        throw new Error(error.response.data.error);
+      } else if (error.response?.data?.message) {
+        throw new Error(error.response.data.message);
+      } else if (error.response?.status === 500) {
+        throw new Error('Server error occurred while processing payment');
+      } else if (error.response?.status === 400) {
+        throw new Error('Invalid payment data provided');
+      } else if (error.response?.status === 404) {
+        throw new Error('Payment endpoint not found');
+      } else {
+        throw error;
+      }
+    }
+  },
+
+  // Review and verify transaction
+  async reviewTransaction(bookingId, action, notes = '') {
+    const response = await api.post(`/bookings/${bookingId}/review-transaction/`, {
+      action, // 'approve' or 'reject'
+      notes
+    });
+    return response.data;
+  },
+
+  // Get booking with transaction details
+  async getBookingWithTransaction(bookingId) {
+    const response = await api.get(`/bookings/${bookingId}/with-transaction/`);
+    return response.data;
   }
 };

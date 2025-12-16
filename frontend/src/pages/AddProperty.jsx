@@ -287,6 +287,11 @@ facilities: property.facilities ?
           await propertyService.uploadImages(id, images);
         }
         
+        // Upload QR code if provided
+        if (qrCodeFile) {
+          await propertyService.uploadQRCode(id, qrCodeFile);
+        }
+        
         toast.success('Property updated successfully!');
       } else {
         response = await propertyService.createProperty(formDataToSend);

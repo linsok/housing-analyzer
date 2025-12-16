@@ -15,6 +15,7 @@ class Booking(models.Model):
     
     STATUS_CHOICES = (
         ('pending', 'Pending'),
+        ('pending_review', 'Pending Review'),
         ('confirmed', 'Confirmed'),
         ('completed', 'Completed'),
         ('cancelled', 'Cancelled'),
@@ -42,6 +43,12 @@ class Booking(models.Model):
     # Additional information
     message = models.TextField(blank=True)
     owner_notes = models.TextField(blank=True)
+    contact_phone = models.CharField(max_length=20, blank=True)
+    member_count = models.IntegerField(default=1)
+    
+    # Payment information
+    transaction_image = models.ImageField(upload_to='transactions/', null=True, blank=True)
+    transaction_submitted_at = models.DateTimeField(null=True, blank=True)
     
     # Timestamps
     created_at = models.DateTimeField(auto_now_add=True)

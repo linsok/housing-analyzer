@@ -14,7 +14,9 @@ class BookingSerializer(serializers.ModelSerializer):
             'id', 'property', 'property_details', 'renter', 'renter_details',
             'booking_type', 'start_date', 'end_date', 'visit_time',
             'monthly_rent', 'deposit_amount', 'total_amount', 'status',
-            'message', 'owner_notes', 'created_at', 'updated_at', 'confirmed_at'
+            'message', 'owner_notes', 'contact_phone', 'member_count',
+            'transaction_image', 'transaction_submitted_at',
+            'created_at', 'updated_at', 'confirmed_at'
         ]
         read_only_fields = ['renter', 'status', 'owner_notes', 'confirmed_at']
     

@@ -353,6 +353,53 @@ const OwnerBookings = () => {
                           <p className="text-gray-600">{booking.message}</p>
                         </div>
                       )}
+                      
+                      {/* Transaction Information */}
+                      {booking.booking_type === 'rental' && (
+                        <div className="mt-3 p-3 bg-yellow-50 rounded text-sm">
+                          <p className="font-medium text-yellow-800 mb-2">Payment Information:</p>
+                          {booking.transaction_image ? (
+                            <div className="space-y-2">
+                              <div className="flex items-center justify-between">
+                                <span className="text-gray-600">Transaction Receipt:</span>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => {
+                                    const modal = document.createElement('div');
+                                    modal.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4';
+                                    modal.innerHTML = `
+                                      <div class="bg-white rounded-lg max-w-2xl w-full p-6">
+                                        <div class="flex items-center justify-between mb-4">
+                                          <h3 class="text-lg font-semibold">Transaction Receipt</h3>
+                                          <button onclick="this.closest('.fixed').remove()" class="text-gray-500 hover:text-gray-700">
+                                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                                            </svg>
+                                          </button>
+                                        </div>
+                                        <img src="${booking.transaction_image}" alt="Transaction receipt" class="w-full h-auto rounded" />
+                                      </div>
+                                    `;
+                                    document.body.appendChild(modal);
+                                  }}
+                                >
+                                  <Eye className="w-4 h-4 mr-1" />
+                                  View Receipt
+                                </Button>
+                              </div>
+                              <div className="text-xs text-gray-600">
+                                Submitted: {formatDate(booking.transaction_submitted_at || booking.created_at)}
+                              </div>
+                            </div>
+                          ) : (
+                            <div className="text-yellow-700">
+                              <AlertCircle className="w-4 h-4 inline mr-1" />
+                              No transaction receipt uploaded yet
+                            </div>
+                          )}
+                        </div>
+                      )}
                     </div>
                   </div>
 
@@ -495,6 +542,56 @@ const OwnerBookings = () => {
                       )}
                     </div>
                   </div>
+
+                  {/* Transaction Information */}
+                  {selectedBooking.booking_type === 'rental' && (
+                    <div>
+                      <h3 className="font-semibold text-lg mb-3 flex items-center gap-2">
+                        <CreditCard className="w-5 h-5" />
+                        Payment & Transaction Information
+                      </h3>
+                      <div className="bg-gray-50 rounded-lg p-4 space-y-3">
+                        <div><strong>Payment Method:</strong> ABA Mobile (QR Code)</div>
+                        <div><strong>Required Deposit:</strong> {formatCurrency(selectedBooking.deposit_amount)}</div>
+                        
+                        {/* QR Code Display */}
+                        {selectedBooking.property_details?.images?.some(img => img.is_qr_code) && (
+                          <div>
+                            <strong>Property QR Code:</strong>
+                            <div className="mt-2 p-2 bg-white rounded border">
+                              <img 
+                                src={selectedBooking.property_details.images.find(img => img.is_qr_code)?.image} 
+                                alt="Property Payment QR Code" 
+                                className="w-32 h-32 object-contain"
+                              />
+                            </div>
+                          </div>
+                        )}
+                        
+                        {/* Transaction Receipt */}
+                        {selectedBooking.transaction_image ? (
+                          <div>
+                            <strong>Transaction Receipt:</strong>
+                            <div className="mt-2">
+                              <img 
+                                src={selectedBooking.transaction_image} 
+                                alt="Transaction receipt" 
+                                className="w-full h-auto max-h-64 object-contain rounded border"
+                              />
+                              <div className="text-xs text-gray-500 mt-1">
+                                Submitted: {formatDate(selectedBooking.transaction_submitted_at || selectedBooking.created_at)}
+                              </div>
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="text-yellow-700 bg-yellow-100 p-3 rounded">
+                            <AlertCircle className="w-4 h-4 inline mr-1" />
+                            No transaction receipt uploaded yet
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
 
                   {/* Message */}
                   {selectedBooking.message && (

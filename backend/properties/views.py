@@ -84,6 +84,17 @@ class PropertyViewSet(viewsets.ModelViewSet):
                     is_primary=(idx == 0)
                 )
         
+        # Handle QR code if provided
+        qr_code = request.FILES.get('qr_code')
+        if qr_code:
+            PropertyImage.objects.create(
+                property=property,
+                image=qr_code,
+                caption='Payment QR Code',
+                is_qr_code=True,
+                order=999  # Put QR code at the end
+            )
+        
         # Return property detail with images
         detail_serializer = PropertyDetailSerializer(property, context={'request': request})
         return Response(detail_serializer.data, status=status.HTTP_201_CREATED)
@@ -139,6 +150,42 @@ class PropertyViewSet(viewsets.ModelViewSet):
             created_images.append(property_image)
         
         serializer = PropertyImageSerializer(created_images, many=True, context={'request': request})
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+    
+    @action(detail=True, methods=['post'])
+    def upload_qr_code(self, request, pk=None):
+        """Upload or update QR code for a property"""
+        property_obj = self.get_object()
+        
+        # Check ownership
+        if property_obj.owner != request.user:
+            return Response(
+                {'error': 'You can only upload QR codes for your own properties'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
+        qr_code = request.FILES.get('qr_code')
+        if not qr_code:
+            return Response(
+                {'error': 'No QR code provided'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Remove existing QR code if any
+        existing_qr = property_obj.images.filter(is_qr_code=True).first()
+        if existing_qr:
+            existing_qr.delete()
+        
+        # Create new QR code image
+        qr_image = PropertyImage.objects.create(
+            property=property_obj,
+            image=qr_code,
+            caption='Payment QR Code',
+            is_qr_code=True,
+            order=999
+        )
+        
+        serializer = PropertyImageSerializer(qr_image, context={'request': request})
         return Response(serializer.data, status=status.HTTP_201_CREATED)
     
     @action(detail=True, methods=['delete'])

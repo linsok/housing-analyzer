@@ -6,7 +6,7 @@ from users.serializers import UserSerializer
 class PropertyImageSerializer(serializers.ModelSerializer):
     class Meta:
         model = PropertyImage
-        fields = ['id', 'image', 'caption', 'is_primary', 'order', 'created_at']
+        fields = ['id', 'image', 'caption', 'is_primary', 'is_qr_code', 'order', 'created_at']
 
 
 class PropertyDocumentSerializer(serializers.ModelSerializer):
@@ -117,6 +117,7 @@ class FavoriteSerializer(serializers.ModelSerializer):
                 'id': img.id,
                 'image': self.context['request'].build_absolute_uri(img.image.url) if img.image else None,
                 'is_primary': img.is_primary,
+                'is_qr_code': img.is_qr_code,
                 'order': img.order
             })
         

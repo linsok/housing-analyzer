@@ -76,4 +76,14 @@ export const propertyService = {
     });
     return response.data;
   },
+
+  async uploadQRCode(propertyId, qrCodeFile) {
+    const formData = new FormData();
+    formData.append('qr_code', qrCodeFile);
+
+    const response = await api.post(`/properties/${propertyId}/upload_qr_code/`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+    return response.data;
+  },
 };

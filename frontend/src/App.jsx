@@ -19,6 +19,8 @@ import Favorites from './pages/Favorites';
 import RenterDashboardEnhanced from './pages/RenterDashboardEnhanced';
 import OwnerProperties from './pages/OwnerProperties';
 import OwnerBookings from './pages/OwnerBookings';
+import PaymentPage from './pages/PaymentPage';
+import BookingConfirmation from './pages/BookingConfirmation';
 import { useAuthStore } from './store/useAuthStore';
 
 // Protected Route Component
@@ -62,6 +64,20 @@ function App() {
         <Route path="/properties/:id" element={
           <Layout>
             <PropertyPublicView />
+          </Layout>
+        } />
+        <Route path="/properties/:id/payment" element={
+          <Layout>
+            <ProtectedRoute>
+              <PaymentPage />
+            </ProtectedRoute>
+          </Layout>
+        } />
+        <Route path="/booking-confirmation" element={
+          <Layout>
+            <ProtectedRoute>
+              <BookingConfirmation />
+            </ProtectedRoute>
           </Layout>
         } />
 
