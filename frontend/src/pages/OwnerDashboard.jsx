@@ -75,6 +75,12 @@ const OwnerDashboard = () => {
         <div className="flex items-center justify-between mb-8">
           <h1 className="text-3xl font-bold text-gray-900">Owner Dashboard</h1>
           <div className="flex space-x-4">
+            <Link to="/owner/bookings">
+              <Button variant="outline" className="flex items-center">
+                <Calendar className="w-5 h-5 mr-2" />
+                Manage Bookings
+              </Button>
+            </Link>
             <Link to="/owner/properties">
               <Button variant="outline" className="flex items-center">
                 <List className="w-5 h-5 mr-2" />
@@ -312,6 +318,12 @@ const OwnerDashboard = () => {
             <Card>
               <h2 className="text-xl font-semibold mb-4">Quick Actions</h2>
               <div className="space-y-2">
+                <Link to="/owner/bookings">
+                  <Button variant="outline" className="w-full justify-start">
+                    <Calendar className="w-4 h-4 mr-2" />
+                    Manage Bookings
+                  </Button>
+                </Link>
                 <Link to="/owner/properties/new">
                   <Button variant="outline" className="w-full justify-start">
                     <Plus className="w-4 h-4 mr-2" />

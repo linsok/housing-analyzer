@@ -18,6 +18,7 @@ import Profile from './pages/Profile';
 import Favorites from './pages/Favorites';
 import RenterDashboardEnhanced from './pages/RenterDashboardEnhanced';
 import OwnerProperties from './pages/OwnerProperties';
+import OwnerBookings from './pages/OwnerBookings';
 import { useAuthStore } from './store/useAuthStore';
 
 // Protected Route Component
@@ -135,6 +136,14 @@ function App() {
                   element={
                     <ProtectedRoute allowedRoles={['owner']}>
                       <OwnerProperties />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/owner/bookings"
+                  element={
+                    <ProtectedRoute allowedRoles={['owner']}>
+                      <OwnerBookings />
                     </ProtectedRoute>
                   }
                 />

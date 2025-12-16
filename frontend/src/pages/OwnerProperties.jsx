@@ -179,12 +179,63 @@ const OwnerProperties = () => {
            property.verification_status === 'verified';
   };
 
+  // Professional search functionality
+  const normalizeText = (text) => {
+    return text.toLowerCase()
+      .replace(/[^\w\s]/g, '') // Remove special characters
+      .replace(/\s+/g, ' ')    // Replace multiple spaces with single space
+      .trim();
+  };
+
+  const propertyMatchesSearch = (property, searchTerm) => {
+    if (!searchTerm) return true;
+    
+    // Normalize search term
+    const normalizedSearch = normalizeText(searchTerm);
+    const searchTerms = normalizedSearch.split(' ').filter(term => term.length > 0);
+    
+    // Priority 1: Address fields (city, district, area, full address)
+    const addressFields = [
+      property.city || '',
+      property.district || '',
+      property.area || '',
+      property.address || ''
+    ];
+    const addressContent = normalizeText(addressFields.join(' '));
+    
+    // Priority 2: Title and property type
+    const titleFields = [
+      property.title || '',
+      property.property_type || ''
+    ];
+    const titleContent = normalizeText(titleFields.join(' '));
+    
+    // Priority 3: Other fields (description, status, numbers)
+    const otherFields = [
+      property.description || '',
+      property.status || '',
+      property.rent_price?.toString() || '',
+      property.bedrooms?.toString() || '',
+      property.bathrooms?.toString() || '',
+      property.area_sqm?.toString() || ''
+    ];
+    const otherContent = normalizeText(otherFields.join(' '));
+    
+    // Check if all search terms are found in address fields (highest priority)
+    const addressMatch = searchTerms.every(term => addressContent.includes(term));
+    if (addressMatch) return true;
+    
+    // If not found in address, check title/property type (medium priority)
+    const titleMatch = searchTerms.every(term => titleContent.includes(term));
+    if (titleMatch) return true;
+    
+    // If not found in address or title, check other fields (lowest priority)
+    const otherMatch = searchTerms.every(term => otherContent.includes(term));
+    return otherMatch;
+  };
+
   const filteredProperties = Array.isArray(properties) 
-    ? properties.filter(property => 
-        (property.title?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
-        (property.city?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
-        (property.status?.toLowerCase() || '').includes(searchTerm.toLowerCase())
-      )
+    ? properties.filter(property => propertyMatchesSearch(property, searchTerm))
     : [];
 
   const getStatusBadge = (status) => {
@@ -265,7 +316,7 @@ const OwnerProperties = () => {
               <input
                 type="text"
                 className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-                placeholder="Search properties..."
+                placeholder="Search by title, city, area, type, price, bedrooms..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
