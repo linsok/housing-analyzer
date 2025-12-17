@@ -3,14 +3,14 @@ import { Link } from 'react-router-dom';
 import { 
   Calendar, User, Phone, Mail, Home, Users, DollarSign, 
   CheckCircle, XCircle, Clock, AlertCircle, Filter, Search,
-  MessageCircle, Eye, Download
+  MessageCircle, Eye, Download, CreditCard
 } from 'lucide-react';
 import Card from '../components/ui/Card';
 import Badge from '../components/ui/Badge';
 import Button from '../components/ui/Button';
 import Loading from '../components/ui/Loading';
 import { bookingService } from '../services/bookingService';
-import { formatCurrency, formatDate } from '../utils/formatters';
+import { formatCurrency, formatDate, formatDateTime } from '../utils/formatters';
 import { toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
@@ -21,8 +21,11 @@ const OwnerBookings = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [typeFilter, setTypeFilter] = useState('all');
+  const [dateFilter, setDateFilter] = useState('');
   const [selectedBooking, setSelectedBooking] = useState(null);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
+  const [showReceiptModal, setShowReceiptModal] = useState(false);
+  const [selectedReceiptImage, setSelectedReceiptImage] = useState('');
   const [actionLoading, setActionLoading] = useState(false);
 
   useEffect(() => {
@@ -31,7 +34,11 @@ const OwnerBookings = () => {
 
   useEffect(() => {
     filterBookings();
-  }, [bookings, searchTerm, statusFilter, typeFilter]);
+  }, [bookings, searchTerm, statusFilter, typeFilter, dateFilter]);
+
+  useEffect(() => {
+    console.log('Modal state:', { showDetailsModal, selectedBooking });
+  }, [showDetailsModal, selectedBooking]);
 
   const loadBookings = async () => {
     try {
@@ -66,6 +73,15 @@ const OwnerBookings = () => {
     // Filter by type
     if (typeFilter !== 'all') {
       filtered = filtered.filter(booking => booking.booking_type === typeFilter);
+    }
+
+    // Filter by date
+    if (dateFilter) {
+      const filterDate = new Date(dateFilter);
+      filtered = filtered.filter(booking => {
+        const bookingDate = new Date(booking.created_at);
+        return bookingDate.toDateString() === filterDate.toDateString();
+      });
     }
 
     setFilteredBookings(filtered);
@@ -113,9 +129,26 @@ const OwnerBookings = () => {
     }
   };
 
+  const handleConfirmReview = async (bookingId) => {
+    setActionLoading(true);
+    try {
+      // Use the existing confirmBooking method to approve the transaction review
+      await bookingService.confirmBooking(bookingId, 'Transaction review confirmed');
+      toast.success('Transaction review confirmed');
+      loadBookings();
+    } catch (error) {
+      console.error('Error confirming review:', error);
+      toast.error('Failed to confirm review');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
   const getStatusBadge = (status) => {
     const variants = {
       pending: 'warning',
+      pending_review: 'warning',
+      review_confirmed: 'primary',
       confirmed: 'success',
       completed: 'info',
       cancelled: 'error',
@@ -123,6 +156,8 @@ const OwnerBookings = () => {
     };
     const icons = {
       pending: <Clock className="w-3 h-3" />,
+      pending_review: <Clock className="w-3 h-3" />,
+      review_confirmed: <Eye className="w-3 h-3" />,
       confirmed: <CheckCircle className="w-3 h-3" />,
       completed: <CheckCircle className="w-3 h-3" />,
       cancelled: <XCircle className="w-3 h-3" />,
@@ -156,8 +191,16 @@ const OwnerBookings = () => {
   };
 
   const showBookingDetails = (booking) => {
+    console.log('Opening booking details:', booking);
+    console.log('Booking status:', booking.status);
+    console.log('Has transaction image:', !!booking.transaction_image);
     setSelectedBooking(booking);
     setShowDetailsModal(true);
+  };
+
+  const openReceiptModal = (imageUrl) => {
+    setSelectedReceiptImage(imageUrl);
+    setShowReceiptModal(true);
   };
 
   const exportBookings = () => {
@@ -211,7 +254,7 @@ const OwnerBookings = () => {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
           <Card className="text-center">
             <Calendar className="w-8 h-8 text-yellow-500 mx-auto mb-2" />
-            <div className="text-2xl font-bold">{bookings.filter(b => b.status === 'pending').length}</div>
+            <div className="text-2xl font-bold">{bookings.filter(b => b.status === 'pending' || b.status === 'pending_review').length}</div>
             <div className="text-gray-600 text-sm">Pending</div>
           </Card>
           <Card className="text-center">
@@ -252,6 +295,8 @@ const OwnerBookings = () => {
             >
               <option value="all">All Status</option>
               <option value="pending">Pending</option>
+              <option value="pending_review">Pending Review</option>
+              <option value="review_confirmed">Review Confirmed</option>
               <option value="confirmed">Confirmed</option>
               <option value="completed">Completed</option>
               <option value="cancelled">Cancelled</option>
@@ -267,6 +312,14 @@ const OwnerBookings = () => {
               <option value="rental">Room Rental</option>
               <option value="visit">Property Visit</option>
             </select>
+
+            <input
+              type="date"
+              value={dateFilter}
+              onChange={(e) => setDateFilter(e.target.value)}
+              className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+              placeholder="Filter by date"
+            />
 
             <div className="flex items-center text-sm text-gray-600">
               <Filter className="w-4 h-4 mr-2" />
@@ -284,7 +337,7 @@ const OwnerBookings = () => {
               <Calendar className="w-16 h-16 mx-auto mb-4 text-gray-400" />
               <p className="text-lg font-medium">No bookings found</p>
               <p className="text-sm mt-2">
-                {searchTerm || statusFilter !== 'all' || typeFilter !== 'all' 
+                {searchTerm || statusFilter !== 'all' || typeFilter !== 'all' || dateFilter
                   ? 'Try adjusting your filters' 
                   : 'When you receive booking requests, they will appear here'
                 }
@@ -334,6 +387,10 @@ const OwnerBookings = () => {
                             </span>
                           )}
                         </div>
+                        <div className="flex items-center gap-1 text-xs text-gray-600">
+                          <Clock className="w-3 h-3" />
+                          Booked on: {formatDateTime(booking.created_at)}
+                        </div>
                         {booking.total_amount && (
                           <div className="flex items-center gap-1 font-medium text-green-600">
                             <DollarSign className="w-4 h-4" />
@@ -365,24 +422,7 @@ const OwnerBookings = () => {
                                 <Button
                                   size="sm"
                                   variant="outline"
-                                  onClick={() => {
-                                    const modal = document.createElement('div');
-                                    modal.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4';
-                                    modal.innerHTML = `
-                                      <div class="bg-white rounded-lg max-w-2xl w-full p-6">
-                                        <div class="flex items-center justify-between mb-4">
-                                          <h3 class="text-lg font-semibold">Transaction Receipt</h3>
-                                          <button onclick="this.closest('.fixed').remove()" class="text-gray-500 hover:text-gray-700">
-                                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-                                            </svg>
-                                          </button>
-                                        </div>
-                                        <img src="${booking.transaction_image}" alt="Transaction receipt" class="w-full h-auto rounded" />
-                                      </div>
-                                    `;
-                                    document.body.appendChild(modal);
-                                  }}
+                                  onClick={() => openReceiptModal(booking.transaction_image)}
                                 >
                                   <Eye className="w-4 h-4 mr-1" />
                                   View Receipt
@@ -423,16 +463,16 @@ const OwnerBookings = () => {
                     </div>
                     
                     <div className="flex gap-2">
-                      {booking.status === 'pending' && (
+                      {/* Pending status - show Confirm Review button if transaction exists */}
+                      {(booking.status === 'pending' || booking.status === 'pending_review') && booking.transaction_image && (
                         <>
                           <Button
                             size="sm"
-                            onClick={() => handleConfirmBooking(booking.id)}
+                            onClick={() => handleConfirmReview(booking.id)}
                             disabled={actionLoading}
-                            className="bg-green-600 hover:bg-green-700"
+                            className="bg-blue-600 hover:bg-blue-700"
                           >
-                            <CheckCircle className="w-4 h-4 mr-1" />
-                            Confirm
+                            Confirm 
                           </Button>
                           <Button
                             size="sm"
@@ -447,6 +487,40 @@ const OwnerBookings = () => {
                         </>
                       )}
                       
+                      {/* Pending status without transaction - waiting indicator */}
+                      {(booking.status === 'pending' || booking.status === 'pending_review') && !booking.transaction_image && (
+                        <div className="text-xs text-yellow-600">
+                          <AlertCircle className="w-3 h-3 inline mr-1" />
+                          Waiting for receipt
+                        </div>
+                      )}
+                      
+                      {/* Review confirmed status - show Confirm Booking button */}
+                      {booking.status === 'review_confirmed' && (
+                        <>
+                          <Button
+                            size="sm"
+                            onClick={() => handleConfirmBooking(booking.id)}
+                            disabled={actionLoading}
+                            className="bg-green-600 hover:bg-green-700"
+                          >
+                            <CheckCircle className="w-4 h-4 mr-1" />
+                            Confirm Booking
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handleRejectBooking(booking.id)}
+                            disabled={actionLoading}
+                            className="border-red-300 text-red-600 hover:bg-red-50"
+                          >
+                            <XCircle className="w-4 h-4 mr-1" />
+                            Reject
+                          </Button>
+                        </>
+                      )}
+                      
+                      {/* Confirmed status - show Mark Complete button for rentals */}
                       {booking.status === 'confirmed' && booking.booking_type === 'rental' && (
                         <Button
                           size="sm"
@@ -482,27 +556,103 @@ const OwnerBookings = () => {
                 </div>
 
                 <div className="space-y-6">
-                  {/* Renter Information */}
+                  {/* Summary Table */}
                   <div>
-                    <h3 className="font-semibold text-lg mb-3 flex items-center gap-2">
+                    <h3 className="font-semibold text-lg mb-4 flex items-center gap-2">
                       <User className="w-5 h-5" />
-                      Renter Information
+                      Booking Summary
                     </h3>
-                    <div className="bg-gray-50 rounded-lg p-4 space-y-2">
-                      <div><strong>Name:</strong> {selectedBooking.renter_details?.full_name || 'N/A'}</div>
-                      <div><strong>Email:</strong> {selectedBooking.renter_details?.email || 'N/A'}</div>
-                      <div><strong>Phone:</strong> {selectedBooking.renter_details?.phone || 'N/A'}</div>
-                      {selectedBooking.member_count && (
-                        <div><strong>Number of Occupants:</strong> {selectedBooking.member_count}</div>
-                      )}
+                    <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
+                      <table className="w-full">
+                        <tbody className="divide-y divide-gray-200">
+                          <tr className="hover:bg-gray-50">
+                            <td className="px-6 py-3 text-sm font-medium text-gray-900 w-1/3">Renter Name</td>
+                            <td className="px-6 py-3 text-sm text-gray-700">{selectedBooking.renter_details?.full_name || 'N/A'}</td>
+                          </tr>
+                          <tr className="hover:bg-gray-50">
+                            <td className="px-6 py-3 text-sm font-medium text-gray-900">Email</td>
+                            <td className="px-6 py-3 text-sm text-gray-700">{selectedBooking.renter_details?.email || 'N/A'}</td>
+                          </tr>
+                          <tr className="hover:bg-gray-50">
+                            <td className="px-6 py-3 text-sm font-medium text-gray-900">Contact</td>
+                            <td className="px-6 py-3 text-sm text-gray-700">{selectedBooking.renter_details?.phone || 'N/A'}</td>
+                          </tr>
+                          <tr className="hover:bg-gray-50">
+                            <td className="px-6 py-3 text-sm font-medium text-gray-900">Move-in Date</td>
+                            <td className="px-6 py-3 text-sm text-gray-700">
+                              {selectedBooking.booking_type === 'rental' 
+                                ? formatDate(selectedBooking.start_date)
+                                : formatDate(selectedBooking.visit_time)
+                              }
+                            </td>
+                          </tr>
+                          <tr className="hover:bg-gray-50">
+                            <td className="px-6 py-3 text-sm font-medium text-gray-900">Occupation</td>
+                            <td className="px-6 py-3 text-sm text-gray-700">
+                              {selectedBooking.member_count ? `${selectedBooking.member_count} occupants` : 'N/A'}
+                            </td>
+                          </tr>
+                          <tr className="hover:bg-gray-50">
+                            <td className="px-6 py-3 text-sm font-medium text-gray-900">Deposit</td>
+                            <td className="px-6 py-3 text-sm text-gray-700">
+                              {selectedBooking.deposit_amount ? formatCurrency(selectedBooking.deposit_amount) : 'N/A'}
+                            </td>
+                          </tr>
+                          <tr className="hover:bg-gray-50">
+                            <td className="px-6 py-3 text-sm font-medium text-gray-900">Booking Payment</td>
+                            <td className="px-6 py-3 text-sm text-gray-700">
+                              {selectedBooking.total_amount ? formatCurrency(selectedBooking.total_amount) : 'N/A'}
+                            </td>
+                          </tr>
+                          <tr className="hover:bg-gray-50">
+                            <td className="px-6 py-3 text-sm font-medium text-gray-900">Booking Submitted</td>
+                            <td className="px-6 py-3 text-sm text-gray-700">
+                              <div className="flex items-center gap-2">
+                                <Clock className="w-4 h-4 text-gray-500" />
+                                {formatDateTime(selectedBooking.created_at)}
+                              </div>
+                            </td>
+                          </tr>
+                          <tr className="hover:bg-gray-50">
+                            <td className="px-6 py-3 text-sm font-medium text-gray-900">Transaction Review</td>
+                            <td className="px-6 py-3 text-sm text-gray-700">
+                              {selectedBooking.transaction_image ? (
+                                <div className="space-y-2">
+                                  <div className="flex items-center gap-2">
+                                    <CheckCircle className="w-4 h-4 text-green-500" />
+                                    <span className="text-green-600">Receipt uploaded</span>
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      onClick={() => openReceiptModal(selectedBooking.transaction_image)}
+                                    >
+                                      <Eye className="w-3 h-3 mr-1" />
+                                      View
+                                    </Button>
+                                  </div>
+                                  <div className="flex items-center gap-2 text-xs text-gray-600">
+                                    <Clock className="w-3 h-3" />
+                                    Submitted: {formatDateTime(selectedBooking.transaction_submitted_at || selectedBooking.updated_at)}
+                                  </div>
+                                </div>
+                              ) : (
+                                <div className="flex items-center gap-2">
+                                  <AlertCircle className="w-4 h-4 text-yellow-500" />
+                                  <span className="text-yellow-600">No receipt uploaded</span>
+                                </div>
+                              )}
+                            </td>
+                          </tr>
+                        </tbody>
+                      </table>
                     </div>
                   </div>
 
-                  {/* Property Information */}
+                  {/* Property Details */}
                   <div>
                     <h3 className="font-semibold text-lg mb-3 flex items-center gap-2">
                       <Home className="w-5 h-5" />
-                      Property Information
+                      Property Details
                     </h3>
                     <div className="bg-gray-50 rounded-lg p-4 space-y-2">
                       <div><strong>Property:</strong> {selectedBooking.property_details?.title || 'N/A'}</div>
@@ -514,79 +664,27 @@ const OwnerBookings = () => {
                     </div>
                   </div>
 
-                  {/* Booking Information */}
-                  <div>
-                    <h3 className="font-semibold text-lg mb-3 flex items-center gap-2">
-                      <Calendar className="w-5 h-5" />
-                      Booking Information
-                    </h3>
-                    <div className="bg-gray-50 rounded-lg p-4 space-y-2">
-                      <div><strong>Type:</strong> {selectedBooking.booking_type === 'rental' ? 'Room Rental' : 'Property Visit'}</div>
-                      <div><strong>Status:</strong> {selectedBooking.status}</div>
-                      <div><strong>Date:</strong> {
-                        selectedBooking.booking_type === 'rental' 
-                          ? `Move-in: ${formatDate(selectedBooking.start_date)}`
-                          : `Visit: ${formatDate(selectedBooking.visit_time)}`
-                      }</div>
-                      {selectedBooking.end_date && (
-                        <div><strong>End Date:</strong> {formatDate(selectedBooking.end_date)}</div>
-                      )}
-                      {selectedBooking.created_at && (
-                        <div><strong>Booked On:</strong> {formatDate(selectedBooking.created_at)}</div>
-                      )}
-                      {selectedBooking.total_amount && (
-                        <div><strong>Total Amount:</strong> {formatCurrency(selectedBooking.total_amount)}</div>
-                      )}
-                      {selectedBooking.deposit_amount && (
-                        <div><strong>Deposit:</strong> {formatCurrency(selectedBooking.deposit_amount)}</div>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Transaction Information */}
+                  {/* Payment Method & QR Code */}
                   {selectedBooking.booking_type === 'rental' && (
                     <div>
                       <h3 className="font-semibold text-lg mb-3 flex items-center gap-2">
                         <CreditCard className="w-5 h-5" />
-                        Payment & Transaction Information
+                        Payment Information
                       </h3>
                       <div className="bg-gray-50 rounded-lg p-4 space-y-3">
                         <div><strong>Payment Method:</strong> ABA Mobile (QR Code)</div>
-                        <div><strong>Required Deposit:</strong> {formatCurrency(selectedBooking.deposit_amount)}</div>
                         
                         {/* QR Code Display */}
                         {selectedBooking.property_details?.images?.some(img => img.is_qr_code) && (
                           <div>
                             <strong>Property QR Code:</strong>
-                            <div className="mt-2 p-2 bg-white rounded border">
+                            <div className="mt-2 p-2 bg-white rounded border inline-block">
                               <img 
                                 src={selectedBooking.property_details.images.find(img => img.is_qr_code)?.image} 
                                 alt="Property Payment QR Code" 
                                 className="w-32 h-32 object-contain"
                               />
                             </div>
-                          </div>
-                        )}
-                        
-                        {/* Transaction Receipt */}
-                        {selectedBooking.transaction_image ? (
-                          <div>
-                            <strong>Transaction Receipt:</strong>
-                            <div className="mt-2">
-                              <img 
-                                src={selectedBooking.transaction_image} 
-                                alt="Transaction receipt" 
-                                className="w-full h-auto max-h-64 object-contain rounded border"
-                              />
-                              <div className="text-xs text-gray-500 mt-1">
-                                Submitted: {formatDate(selectedBooking.transaction_submitted_at || selectedBooking.created_at)}
-                              </div>
-                            </div>
-                          </div>
-                        ) : (
-                          <div className="text-yellow-700 bg-yellow-100 p-3 rounded">
-                            <AlertCircle className="w-4 h-4 inline mr-1" />
-                            No transaction receipt uploaded yet
                           </div>
                         )}
                       </div>
@@ -607,41 +705,156 @@ const OwnerBookings = () => {
                   )}
                 </div>
 
-                <div className="flex justify-end gap-3 mt-6">
-                  <Button
-                    variant="outline"
-                    onClick={() => setShowDetailsModal(false)}
-                  >
-                    Close
-                  </Button>
-                  {selectedBooking.status === 'pending' && (
-                    <>
+                <div className="flex justify-between items-center mt-6 pt-6 border-t">
+                  <div className="text-sm text-gray-600">
+                    {(selectedBooking.status === 'pending' || selectedBooking.status === 'pending_review') && (
+                      <div className="flex items-center gap-2">
+                        <AlertCircle className="w-4 h-4 text-yellow-500" />
+                        <span>Pending review - review transaction receipt first</span>
+                      </div>
+                    )}
+                    {selectedBooking.status === 'review_confirmed' && (
+                      <div className="flex items-center gap-2">
+                        <Eye className="w-4 h-4 text-blue-500" />
+                        <span>Review confirmed - ready for booking confirmation</span>
+                      </div>
+                    )}
+                    {selectedBooking.status === 'confirmed' && (
+                      <div className="flex items-center gap-2">
+                        <CheckCircle className="w-4 h-4 text-green-500" />
+                        <span>Booking confirmed</span>
+                      </div>
+                    )}
+                    {selectedBooking.status === 'completed' && (
+                      <div className="flex items-center gap-2">
+                        <CheckCircle className="w-4 h-4 text-blue-500" />
+                        <span>Booking completed</span>
+                      </div>
+                    )}
+                  </div>
+                  
+                  <div className="flex gap-3">
+                    <Button
+                      variant="outline"
+                      onClick={() => setShowDetailsModal(false)}
+                    >
+                      Close
+                    </Button>
+                    
+                    {/* Pending status - show Confirm Review button */}
+                    {(selectedBooking.status === 'pending' || selectedBooking.status === 'pending_review') && selectedBooking.transaction_image && (
+                      <>
+                        <Button
+                          onClick={() => {
+                            handleConfirmReview(selectedBooking.id);
+                          }}
+                          disabled={actionLoading}
+                          className="bg-blue-600 hover:bg-blue-700"
+                        >
+                          <Eye className="w-4 h-4 mr-2" />
+                          Confirm Review
+                        </Button>
+                        <Button
+                          variant="outline"
+                          onClick={() => {
+                            handleRejectBooking(selectedBooking.id);
+                            setShowDetailsModal(false);
+                          }}
+                          disabled={actionLoading}
+                          className="border-red-300 text-red-600 hover:bg-red-50"
+                        >
+                          <XCircle className="w-4 h-4 mr-2" />
+                          Reject
+                        </Button>
+                      </>
+                    )}
+                    
+                    {/* Pending status without transaction receipt */}
+                    {(selectedBooking.status === 'pending' || selectedBooking.status === 'pending_review') && !selectedBooking.transaction_image && (
+                      <div className="text-sm text-yellow-600">
+                        <AlertCircle className="w-4 h-4 inline mr-1" />
+                        Waiting for transaction receipt
+                      </div>
+                    )}
+                    
+                    {/* Review confirmed status - show Confirm Booking button */}
+                    {selectedBooking.status === 'review_confirmed' && (
+                      <>
+                        <Button
+                          onClick={() => {
+                            handleConfirmBooking(selectedBooking.id);
+                            setShowDetailsModal(false);
+                          }}
+                          disabled={actionLoading}
+                          className="bg-green-600 hover:bg-green-700 px-6"
+                        >
+                          <CheckCircle className="w-4 h-4 mr-2" />
+                          Confirm Booking
+                        </Button>
+                        <Button
+                          variant="outline"
+                          onClick={() => {
+                            handleRejectBooking(selectedBooking.id);
+                            setShowDetailsModal(false);
+                          }}
+                          disabled={actionLoading}
+                          className="border-red-300 text-red-600 hover:bg-red-50"
+                        >
+                          <XCircle className="w-4 h-4 mr-2" />
+                          Reject
+                        </Button>
+                      </>
+                    )}
+                    
+                    {/* Confirmed status - show Mark Complete button for rentals */}
+                    {selectedBooking.status === 'confirmed' && selectedBooking.booking_type === 'rental' && (
                       <Button
                         onClick={() => {
-                          handleConfirmBooking(selectedBooking.id);
+                          handleCompleteBooking(selectedBooking.id);
                           setShowDetailsModal(false);
                         }}
                         disabled={actionLoading}
-                        className="bg-green-600 hover:bg-green-700"
                       >
                         <CheckCircle className="w-4 h-4 mr-2" />
-                        Confirm Booking
+                        Mark Complete
                       </Button>
-                      <Button
-                        variant="outline"
-                        onClick={() => {
-                          handleRejectBooking(selectedBooking.id);
-                          setShowDetailsModal(false);
-                        }}
-                        disabled={actionLoading}
-                        className="border-red-300 text-red-600 hover:bg-red-50"
-                      >
-                        <XCircle className="w-4 h-4 mr-2" />
-                        Reject Booking
-                      </Button>
-                    </>
-                  )}
+                    )}
+                  </div>
                 </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Receipt Modal */}
+        {showReceiptModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col">
+              <div className="flex items-center justify-between p-6 border-b">
+                <h3 className="text-xl font-semibold">Transaction Receipt</h3>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowReceiptModal(false)}
+                >
+                  <XCircle className="w-4 h-4" />
+                </Button>
+              </div>
+              <div className="flex-1 overflow-auto p-6">
+                <img 
+                  src={selectedReceiptImage} 
+                  alt="Transaction receipt" 
+                  className="max-w-full h-auto mx-auto object-contain"
+                />
+              </div>
+              <div className="p-6 border-t">
+                <Button
+                  variant="outline"
+                  onClick={() => setShowReceiptModal(false)}
+                  className="w-full"
+                >
+                  Close
+                </Button>
               </div>
             </div>
           </div>

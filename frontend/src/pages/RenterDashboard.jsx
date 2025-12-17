@@ -7,7 +7,7 @@ import Button from '../components/ui/Button';
 import Loading from '../components/ui/Loading';
 import { bookingService } from '../services/bookingService';
 import { propertyService } from '../services/propertyService';
-import { formatCurrency, formatDate } from '../utils/formatters';
+import { formatCurrency, formatDate, formatDateTime } from '../utils/formatters';
 
 const RenterDashboard = () => {
   const [bookings, setBookings] = useState([]);
@@ -163,7 +163,29 @@ const RenterDashboard = () => {
                             {new Date(booking.visit_time).toLocaleString()}
                           </div>
                         )}
+                        <div className="col-span-2">
+                          <span className="font-medium">Booked on:</span>{' '}
+                          {formatDateTime(booking.created_at)}
+                        </div>
                       </div>
+
+                      {/* Transaction Information */}
+                      {booking.transaction_image && (
+                        <div className="mb-3 p-3 bg-blue-50 rounded-lg">
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <div className="font-medium text-sm text-blue-900">Transaction Submitted</div>
+                              <div className="text-xs text-blue-700">
+                                {formatDateTime(booking.transaction_submitted_at || booking.updated_at)}
+                              </div>
+                            </div>
+                            <div className="text-xs text-blue-600">
+                              <CreditCard className="w-4 h-4 inline mr-1" />
+                              Receipt Uploaded
+                            </div>
+                          </div>
+                        </div>
+                      )}
 
                       {/* Owner Contact Info */}
                       {booking.property_details?.owner && (

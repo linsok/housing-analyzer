@@ -99,7 +99,16 @@ const PaymentPage = () => {
       // Add booking details
       Object.keys(bookingData).forEach(key => {
         if (key !== 'bookingId' && key !== 'propertyId' && key !== 'depositAmount') {
-          formData.append(key, bookingData[key]);
+          let value = bookingData[key];
+          
+          // Convert memberCount from string to number
+          if (key === 'memberCount' && value === '6+') {
+            value = 6; // Convert '6+' to 6 for the backend
+          } else if (key === 'memberCount') {
+            value = parseInt(value, 10); // Convert other numeric values
+          }
+          
+          formData.append(key, value);
         }
       });
 
