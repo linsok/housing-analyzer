@@ -1,0 +1,11 @@
+# Your Bakong KHQR Configuration
+# Copy these settings to your .env file
+
+BAKONG_API_TOKEN=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJkYXRhIjp7ImlkIjoiMjNiZGQ3NmIwNDgzNDAyYiJ9LCJpYXQiOjE3NjY0OTY0NDMsImV4cCI6MTc3NDI3MjQ0M30.ZjHJURnAXqQEuwsiqb9ltbF-xA0sgqaWfevdatnyjUk
+BAKONG_MERCHANT_NAME=SOKLIN HOUSING
+BAKONG_MERCHANT_CITY=Phnom Penh
+BAKONG_PHONE_NUMBER=855977569023
+
+# IMPORTANT: You still need to add your bank account in format username@bankcode
+# Find this in your Bakong app profile and replace the placeholder below:
+BAKONG_BANK_ACCOUNT=REPLACE_WITH_YOUR_USERNAME@BANKCODE

@@ -215,3 +215,10 @@ STRIPE_SECRET_KEY = config('STRIPE_SECRET_KEY', default='')
 
 # Google Maps API
 GOOGLE_MAPS_API_KEY = config('GOOGLE_MAPS_API_KEY', default='')
+
+# Bakong KHQR Payment Configuration
+BAKONG_API_TOKEN = config('BAKONG_API_TOKEN', default='')
+BAKONG_BANK_ACCOUNT = config('BAKONG_BANK_ACCOUNT', default='')
+BAKONG_MERCHANT_NAME = config('BAKONG_MERCHANT_NAME', default='Housing Analyzer')
+BAKONG_MERCHANT_CITY = config('BAKONG_MERCHANT_CITY', default='Phnom Penh')
+BAKONG_PHONE_NUMBER = config('BAKONG_PHONE_NUMBER', default='')

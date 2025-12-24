@@ -1,0 +1,18 @@
+# Copy this content to your .env file in the backend directory
+
+# Django Settings
+SECRET_KEY=your-secret-key-here-change-in-production
+DEBUG=True
+
+# Database - SQL Server Configuration
+USE_WINDOWS_AUTH=True
+DB_NAME=housing_analyzer
+DB_HOST=localhost\SQLEXPRESS
+DB_PORT=1433
+
+# Bakong KHQR Payment Configuration
+BAKONG_API_TOKEN=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJkYXRhIjp7ImlkIjoiMjNiZGQ3NmIwNDgzNDAyYiJ9LCJpYXQiOjE3NjY0OTY0NDMsImV4cCI6MTc3NDI3MjQ0M30.ZjHJURnAXqQEuwsiqb9ltbF-xA0sgqaWfevdatnyjUk
+BAKONG_BANK_ACCOUNT=sok_lin@bkrt
+BAKONG_MERCHANT_NAME=SOKLIN HOUSING
+BAKONG_MERCHANT_CITY=Phnom Penh
+BAKONG_PHONE_NUMBER=855977569023

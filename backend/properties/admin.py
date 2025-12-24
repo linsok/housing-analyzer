@@ -7,7 +7,7 @@ class PropertyImageInline(admin.TabularInline):
     model = PropertyImage
     extra = 1
     readonly_fields = ['image_thumbnail']
-    fields = ['image', 'image_thumbnail', 'caption', 'is_primary', 'is_qr_code', 'order']
+    fields = ['image', 'image_thumbnail', 'caption', 'is_primary', 'order']
     
     def image_thumbnail(self, obj):
         if obj.image:
@@ -28,24 +28,17 @@ class PropertyAdmin(admin.ModelAdmin):
 
 @admin.register(PropertyImage)
 class PropertyImageAdmin(admin.ModelAdmin):
-    list_display = ['property', 'image_thumbnail', 'caption', 'is_primary', 'is_qr_code_badge', 'order', 'created_at']
-    list_filter = ['is_primary', 'is_qr_code', 'created_at']
+    list_display = ['property', 'image_thumbnail', 'caption', 'is_primary', 'order', 'created_at']
+    list_filter = ['is_primary', 'created_at']
     search_fields = ['property__title', 'caption']
     readonly_fields = ['image_thumbnail']
-    ordering = ['property', 'order', '-is_qr_code', '-is_primary']
+    ordering = ['property', 'order', '-is_primary']
     
     def image_thumbnail(self, obj):
         if obj.image:
             return format_html('<img src="{}" width="100" height="100" />', obj.image.url)
         return "No image"
     image_thumbnail.short_description = 'Preview'
-    
-    def is_qr_code_badge(self, obj):
-        if obj.is_qr_code:
-            return format_html('<span style="background-color: #28a745; color: white; padding: 3px 8px; border-radius: 4px;">QR Code</span>')
-        return "No"
-    is_qr_code_badge.short_description = 'QR Code'
-    is_qr_code_badge.admin_order_field = 'is_qr_code'
 
 
 @admin.register(Favorite)

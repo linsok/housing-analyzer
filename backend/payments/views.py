@@ -6,8 +6,10 @@ from datetime import timedelta
 import qrcode
 from io import BytesIO
 from django.core.files import File
+from decimal import Decimal
 from .models import Payment, QRCode
 from .serializers import PaymentSerializer, QRCodeSerializer
+from .bakong_service import bakong_service
 
 
 class PaymentViewSet(viewsets.ModelViewSet):
@@ -117,3 +119,120 @@ class PaymentViewSet(viewsets.ModelViewSet):
         
         serializer = self.get_serializer(payment)
         return Response(serializer.data)
+    
+    @action(detail=False, methods=['post'])
+    def generate_khqr(self, request):
+        """Generate Bakong KHQR code for payment"""
+        try:
+            amount = request.data.get('amount')
+            currency = request.data.get('currency', 'KHR')
+            property_title = request.data.get('property_title', 'Property Booking')
+            booking_id = request.data.get('booking_id', '')
+            renter_name = request.data.get('renter_name', '')
+            property_id = request.data.get('property_id')
+            
+            if not amount:
+                return Response(
+                    {'error': 'Amount is required'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            
+            # Get property and check Bakong configuration
+            bakong_bank_account = None
+            bakong_merchant_name = None
+            bakong_phone_number = None
+            
+            if property_id:
+                try:
+                    from properties.models import Property
+                    property = Property.objects.get(id=property_id)
+                    
+                    if property.use_bakong_payment and property.bakong_bank_account:
+                        bakong_bank_account = property.bakong_bank_account
+                        bakong_merchant_name = property.bakong_merchant_name or property.title
+                        bakong_phone_number = property.bakong_phone_number
+                    else:
+                        return Response(
+                            {'error': 'This property does not have Bakong payment enabled'},
+                            status=status.HTTP_400_BAD_REQUEST
+                        )
+                except Property.DoesNotExist:
+                    return Response(
+                        {'error': 'Property not found'},
+                        status=status.HTTP_404_NOT_FOUND
+                    )
+            
+            # Convert amount to Decimal
+            try:
+                amount_decimal = Decimal(str(amount))
+            except:
+                return Response(
+                    {'error': 'Invalid amount format'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            
+            # Generate KHQR code
+            khqr_data = bakong_service.generate_qr_code(
+                amount=amount_decimal,
+                currency=currency,
+                property_title=property_title,
+                booking_id=booking_id,
+                renter_name=renter_name,
+                bakong_bank_account=bakong_bank_account,
+                bakong_merchant_name=bakong_merchant_name,
+                bakong_phone_number=bakong_phone_number
+            )
+            
+            return Response(khqr_data)
+            
+        except Exception as e:
+            return Response(
+                {'error': f'Failed to generate KHQR code: {str(e)}'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+    
+    @action(detail=False, methods=['post'])
+    def check_payment_status(self, request):
+        """Check Bakong payment status"""
+        try:
+            md5_hash = request.data.get('md5_hash')
+            
+            if not md5_hash:
+                return Response(
+                    {'error': 'MD5 hash is required'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            
+            # Check payment status
+            status_info = bakong_service.check_payment_status(md5_hash)
+            
+            return Response(status_info)
+            
+        except Exception as e:
+            return Response(
+                {'error': f'Failed to check payment status: {str(e)}'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+    
+    @action(detail=False, methods=['post'])
+    def get_payment_details(self, request):
+        """Get Bakong payment details"""
+        try:
+            md5_hash = request.data.get('md5_hash')
+            
+            if not md5_hash:
+                return Response(
+                    {'error': 'MD5 hash is required'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            
+            # Get payment details
+            payment_info = bakong_service.get_payment_details(md5_hash)
+            
+            return Response(payment_info)
+            
+        except Exception as e:
+            return Response(
+                {'error': f'Failed to get payment details: {str(e)}'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )

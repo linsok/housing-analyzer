@@ -18,8 +18,6 @@ const AddProperty = (props) => {
   const [images, setImages] = useState([]);
   const [imagePreviews, setImagePreviews] = useState([]);
   const [existingImages, setExistingImages] = useState([]);
-  const [qrCodeFile, setQrCodeFile] = useState(null);
-  const [qrCodePreview, setQrCodePreview] = useState('');
   const [formData, setFormData] = useState({
     title: '',
     description: '',
@@ -43,6 +41,11 @@ const AddProperty = (props) => {
     facilities: [],
     rules: '',
     available_from: '',
+    // Bakong payment fields
+    use_bakong_payment: false,
+    bakong_bank_account: '',
+    bakong_merchant_name: '',
+    bakong_phone_number: '',
   });
   const [propertyData, setPropertyData] = useState(null);
 
@@ -94,18 +97,6 @@ const AddProperty = (props) => {
       };
       reader.readAsDataURL(file);
     });
-  };
-
-  const handleQrCodeChange = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      setQrCodeFile(file);
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setQrCodePreview(reader.result);
-      };
-      reader.readAsDataURL(file);
-    }
   };
 
   const removeExistingImage = async (index) => {
@@ -167,6 +158,10 @@ facilities: property.facilities ?
                 property.facilities) : [],
             rules: property.rules || '',
             available_from: property.available_from || '',
+            use_bakong_payment: property.use_bakong_payment || false,
+            bakong_bank_account: property.bakong_bank_account || '',
+            bakong_merchant_name: property.bakong_merchant_name || '',
+            bakong_phone_number: property.bakong_phone_number || '',
           };
 
           setFormData(formattedData);
@@ -208,8 +203,9 @@ facilities: property.facilities ?
       return;
     }
 
-    if (!qrCodeFile && !editMode) {
-      toast.error('Please upload a QR code for payment');
+    // Validate Bakong fields if enabled
+    if (formData.use_bakong_payment && !formData.bakong_bank_account) {
+      toast.error('Bakong bank account is required when Bakong payment is enabled');
       return;
     }
 
@@ -252,7 +248,12 @@ facilities: property.facilities ?
         rules: formData.rules || '',
         available_from: formData.available_from || null,
         status: 'available',
-        verification_status: 'pending' // Reset to pending when editing
+        verification_status: 'pending', // Reset to pending when editing
+        // Bakong payment fields
+        use_bakong_payment: Boolean(formData.use_bakong_payment),
+        bakong_bank_account: formData.bakong_bank_account || '',
+        bakong_merchant_name: formData.bakong_merchant_name || '',
+        bakong_phone_number: formData.bakong_phone_number || '',
       };
 
       // Add all fields to formDataToSend
@@ -261,11 +262,6 @@ facilities: property.facilities ?
           formDataToSend.append(key, value);
         }
       });
-
-      // Add QR code to FormData
-      if (qrCodeFile) {
-        formDataToSend.append('qr_code', qrCodeFile);
-      }
 
       // If in edit mode, include existing image IDs to keep them
       if (editMode && existingImages.length > 0) {
@@ -285,11 +281,6 @@ facilities: property.facilities ?
         // Upload new images if any
         if (images.length > 0) {
           await propertyService.uploadImages(id, images);
-        }
-        
-        // Upload QR code if provided
-        if (qrCodeFile) {
-          await propertyService.uploadQRCode(id, qrCodeFile);
         }
         
         toast.success('Property updated successfully!');
@@ -559,56 +550,80 @@ facilities: property.facilities ?
                     </div>
                   </div>
                   
-                  {/* QR Code Upload */}
+                  {/* Bakong Payment Configuration */}
                   <div className="pt-4">
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Payment QR Code must be in $ (Required) *
-                    </label>
-                    <div className="flex items-center space-x-4">
-                      <label className="cursor-pointer bg-white py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500">
-                        {qrCodeFile ? 'Change QR Code' : 'Upload QR Code'}
+                    <div className="space-y-4">
+                      <div className="flex items-center">
                         <input
-                          type="file"
-                          accept="image/*"
-                          onChange={handleQrCodeChange}
-                          className="sr-only"
-                          required={!editMode}
+                          type="checkbox"
+                          id="use_bakong_payment"
+                          name="use_bakong_payment"
+                          checked={formData.use_bakong_payment}
+                          onChange={handleInputChange}
+                          className="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded"
                         />
-                      </label>
-                      {qrCodeFile && (
-                        <span className="text-sm text-gray-500">{qrCodeFile.name}</span>
+                        <label htmlFor="use_bakong_payment" className="ml-2 block text-sm text-gray-700">
+                          Enable Bakong KHQR Payment
+                        </label>
+                      </div>
+                      
+                      <p className="text-xs text-gray-500">
+                        Enable instant payment verification with Bakong KHQR codes. Renters can scan and pay instantly.
+                      </p>
+                      
+                      {formData.use_bakong_payment && (
+                        <div className="space-y-4 pl-6 border-l-2 border-primary-200">
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                              Bakong Bank Account *
+                            </label>
+                            <input
+                              type="text"
+                              name="bakong_bank_account"
+                              value={formData.bakong_bank_account}
+                              onChange={handleInputChange}
+                              placeholder="username@bankcode (e.g., john_doe@baka)"
+                              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
+                              required={formData.use_bakong_payment}
+                            />
+                            <p className="mt-1 text-xs text-gray-500">
+                              Format: username@bankcode. Find this in your Bakong app profile.
+                            </p>
+                          </div>
+                          
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                              Merchant Name
+                            </label>
+                            <input
+                              type="text"
+                              name="bakong_merchant_name"
+                              value={formData.bakong_merchant_name}
+                              onChange={handleInputChange}
+                              placeholder="Your Business Name"
+                              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
+                            />
+                          </div>
+                          
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                              Phone Number
+                            </label>
+                            <input
+                              type="tel"
+                              name="bakong_phone_number"
+                              value={formData.bakong_phone_number}
+                              onChange={handleInputChange}
+                              placeholder="85512345678"
+                              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
+                            />
+                            <p className="mt-1 text-xs text-gray-500">
+                              Include country code (855 for Cambodia).
+                            </p>
+                          </div>
+                        </div>
                       )}
                     </div>
-                    
-                    {qrCodePreview && (
-                      <div className="mt-3">
-                        <p className="text-sm font-medium text-gray-700 mb-1">QR Code Preview:</p>
-                        <div className="inline-block p-2 border border-gray-200 rounded-lg bg-white">
-                          <img 
-                            src={qrCodePreview} 
-                            alt="QR Code Preview" 
-                            className="h-32 w-32 object-contain"
-                          />
-                        </div>
-                      </div>
-                    )}
-                    
-                    {!qrCodePreview && existingImages.some(img => img.is_qr_code) && (
-                      <div className="mt-3">
-                        <p className="text-sm font-medium text-gray-700 mb-1">Current QR Code:</p>
-                        <div className="inline-block p-2 border border-gray-200 rounded-lg bg-white">
-                          <img 
-                            src={existingImages.find(img => img.is_qr_code)?.image} 
-                            alt="Current QR Code" 
-                            className="h-32 w-32 object-contain"
-                          />
-                        </div>
-                      </div>
-                    )}
-                    
-                    <p className="mt-1 text-xs text-gray-500">
-                      Upload a QR code image that renters will use to make payments
-                    </p>
                   </div>
                 </>
               ) : (

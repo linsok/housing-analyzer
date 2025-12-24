@@ -13,6 +13,7 @@ class Payment(models.Model):
         ('qr_code', 'QR Code'),
         ('credit_card', 'Credit Card'),
         ('bank_transfer', 'Bank Transfer'),
+        ('bakong_khqr', 'Bakong KHQR'),
     )
     
     STATUS_CHOICES = (
@@ -37,6 +38,7 @@ class Payment(models.Model):
     # Transaction details
     transaction_id = models.CharField(max_length=100, blank=True)
     payment_proof = models.ImageField(upload_to='payments/', blank=True, null=True)
+    bakong_md5_hash = models.CharField(max_length=255, null=True, blank=True, help_text="MD5 hash for Bakong KHQR payment tracking")
     
     # Additional info
     description = models.TextField(blank=True)

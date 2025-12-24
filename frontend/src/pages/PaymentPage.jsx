@@ -2,13 +2,15 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { 
   CreditCard, QrCode, Upload, AlertCircle, CheckCircle, 
-  XCircle, ArrowLeft, ArrowRight, Loader2, Download, Eye
+  XCircle, ArrowLeft, ArrowRight, Loader2, Download, Eye,
+  Smartphone, RefreshCw, Clock
 } from 'lucide-react';
 import Button from '../components/ui/Button';
 import Card from '../components/ui/Card';
 import Loading from '../components/ui/Loading';
 import { propertyService } from '../services/propertyService';
 import { bookingService } from '../services/bookingService';
+import bakongService from '../services/bakongService';
 import { formatCurrency } from '../utils/formatters';
 import { useAuthStore } from '../store/useAuthStore';
 import { toast } from 'react-toastify';
@@ -27,6 +29,11 @@ const PaymentPage = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [currentStep, setCurrentStep] = useState(1);
+  const [khqrData, setKhqrData] = useState(null);
+  const [generatingQR, setGeneratingQR] = useState(false);
+  const [paymentStatus, setPaymentStatus] = useState(null);
+  const [verifyingPayment, setVerifyingPayment] = useState(false);
+  const [paymentPolling, setPaymentPolling] = useState(null);
   
   // Get booking data from sessionStorage
   useEffect(() => {
@@ -53,124 +60,121 @@ const PaymentPage = () => {
     }
   };
 
-  const handlePaymentMethodSelect = (method) => {
+  const handlePaymentMethodSelect = async (method) => {
     setPaymentMethod(method);
-    if (method === 'aba_qr') {
+    if (method === 'bakong_khqr') {
       setCurrentStep(2);
+      await generateKHQRCode();
     }
   };
 
-  const handleImageUpload = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      // Validate file type
-      if (!file.type.startsWith('image/')) {
-        toast.error('Please upload an image file');
-        return;
-      }
+  const generateKHQRCode = async () => {
+    setGeneratingQR(true);
+    try {
+      const khqrResponse = await bakongService.generateKHQR({
+        amount: bookingData.depositAmount,
+        currency: property.currency || 'KHR', // Use property currency
+        property_title: property.title,
+        booking_id: bookingData.bookingId || 'BK' + Date.now(),
+        renter_name: user.name || user.email,
+        property_id: property.id
+      });
       
-      // Validate file size (max 5MB)
-      if (file.size > 5 * 1024 * 1024) {
-        toast.error('Image size should be less than 5MB');
-        return;
-      }
-      
-      setTransactionImage(file);
+      setKhqrData(khqrResponse);
+      toast.success('KHQR code generated successfully!');
+    } catch (error) {
+      console.error('Error generating KHQR:', error);
+      toast.error(error.error || 'Failed to generate payment QR code');
+    } finally {
+      setGeneratingQR(false);
     }
   };
 
-  const handleSubmitPayment = async () => {
-    if (!transactionImage) {
-      toast.error('Please upload your transaction receipt');
-      return;
-    }
+  const startPaymentVerification = () => {
+    if (!khqrData?.md5_hash) return;
+    
+    setVerifyingPayment(true);
+    setPaymentStatus({ status: 'verifying', message: 'Waiting for payment...' });
+    
+    const polling = bakongService.startPaymentVerification(
+      khqrData.md5_hash,
+      (status) => {
+        setPaymentStatus(status);
+        
+        if (status.status === 'PAID') {
+          handlePaymentSuccessful();
+        } else if (status.status === 'timeout' || status.status === 'error') {
+          setVerifyingPayment(false);
+          if (paymentPolling) {
+            paymentPolling.stop();
+          }
+        }
+      }
+    );
+    
+    setPaymentPolling(polling);
+  };
 
-    setIsSubmitting(true);
+  const handlePaymentSuccessful = async () => {
+    setVerifyingPayment(false);
+    if (paymentPolling) {
+      paymentPolling.stop();
+    }
     
     try {
-      // Create FormData for file upload
+      // Submit booking with Bakong payment confirmation
       const formData = new FormData();
       formData.append('property_id', bookingData.propertyId);
       formData.append('renter_id', user.id);
-      formData.append('payment_method', 'aba_qr');
-      formData.append('transaction_image', transactionImage);
+      formData.append('payment_method', 'bakong_khqr');
       formData.append('amount', bookingData.depositAmount);
+      formData.append('bakong_md5_hash', khqrData.md5_hash);
+      formData.append('payment_status', 'completed');
       
       // Add booking details
       Object.keys(bookingData).forEach(key => {
         if (key !== 'bookingId' && key !== 'propertyId' && key !== 'depositAmount') {
           let value = bookingData[key];
           
-          // Convert memberCount from string to number
           if (key === 'memberCount' && value === '6+') {
-            value = 6; // Convert '6+' to 6 for the backend
+            value = 6;
           } else if (key === 'memberCount') {
-            value = parseInt(value, 10); // Convert other numeric values
+            value = parseInt(value, 10);
           }
           
           formData.append(key, value);
         }
       });
 
-      // DEBUG: Log the payload
-      console.log('=== PAYMENT SUBMISSION DEBUG ===');
-      console.log('User:', user);
-      console.log('Booking Data:', bookingData);
-      console.log('Transaction Image:', transactionImage);
-      console.log('FormData contents:');
-      for (let [key, value] of formData.entries()) {
-        if (value instanceof File) {
-          console.log(`${key}: File(${value.name}, ${value.size} bytes)`);
-        } else {
-          console.log(`${key}: ${value}`);
-        }
-      }
-
-      // Submit payment with transaction proof
       const response = await bookingService.submitPaymentWithTransaction(formData);
       
-      toast.success('Transaction submitted successfully! The property owner will review your payment.');
-      
-      // Clear sessionStorage
+      toast.success('Payment confirmed! Your booking has been submitted.');
       sessionStorage.removeItem('bookingData');
       
-      // Redirect to booking confirmation page
       navigate('/booking-confirmation', { 
         state: { 
           bookingId: response.id,
-          status: 'pending_review'
+          status: 'confirmed'
         } 
       });
       
     } catch (error) {
-      console.error('=== PAYMENT ERROR DEBUG ===');
-      console.error('Error submitting payment:', error);
-      console.error('Error response:', error.response?.data);
-      console.error('Error status:', error.response?.status);
-      console.error('Full error:', error);
-      
-      const errorMessage = error.response?.data?.error || 
-                          error.response?.data?.message || 
-                          'Failed to submit payment. Please try again.';
-      
-      toast.error(errorMessage);
-    } finally {
-      setIsSubmitting(false);
+      console.error('Error submitting booking:', error);
+      toast.error('Payment confirmed but failed to submit booking. Please contact support.');
     }
   };
 
-  const getQrCodeImage = () => {
-    if (!property?.images) return null;
-    
-    // Find QR code image from property images
-    const qrImage = property.images.find(img => img.is_qr_code);
-    return qrImage?.image;
+  const stopPaymentVerification = () => {
+    if (paymentPolling) {
+      paymentPolling.stop();
+      setPaymentPolling(null);
+    }
+    setVerifyingPayment(false);
+    setPaymentStatus(null);
   };
 
   if (loading) return <Loading />;
   if (!property || !bookingData) return <div className="text-center py-8">Property not found</div>;
-
-  const qrCodeImage = getQrCodeImage();
 
   return (
     <div className="min-h-screen bg-gray-50 py-8">
@@ -210,7 +214,7 @@ const PaymentPage = () => {
               }`}>
                 2
               </div>
-              <span className="ml-2 font-medium">Upload Transaction</span>
+              <span className="ml-2 font-medium">Complete Payment</span>
             </div>
           </div>
         </div>
@@ -257,30 +261,30 @@ const PaymentPage = () => {
             
             <div className="space-y-4">
               <div
-                onClick={() => handlePaymentMethodSelect('aba_qr')}
+                onClick={() => handlePaymentMethodSelect('bakong_khqr')}
                 className={`border-2 rounded-lg p-6 cursor-pointer transition-all ${
-                  paymentMethod === 'aba_qr' 
+                  paymentMethod === 'bakong_khqr' 
                     ? 'border-primary-500 bg-primary-50' 
                     : 'border-gray-200 hover:border-gray-300'
                 }`}
               >
                 <div className="flex items-center">
-                  <QrCode className="w-8 h-8 text-primary-600 mr-4" />
+                  <Smartphone className="w-8 h-8 text-primary-600 mr-4" />
                   <div>
-                    <h3 className="font-semibold text-lg">ABA Mobile QR Code</h3>
-                    <p className="text-gray-600">Pay using ABA Mobile app by scanning the QR code</p>
+                    <h3 className="font-semibold text-lg">Bakong KHQR Payment</h3>
+                    <p className="text-gray-600">Pay using Bakong app by scanning the KHQR code</p>
                   </div>
                 </div>
               </div>
 
-              {/* Note about payment processing */}
+              {/* Note about Bakong payment */}
               <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
                 <div className="flex items-start">
                   <AlertCircle className="w-5 h-5 text-blue-600 mt-0.5 mr-3 flex-shrink-0" />
                   <div>
                     <p className="text-sm text-blue-800">
-                      <strong>Important:</strong> After payment, you'll need to upload a screenshot of your transaction receipt. 
-                      The property owner will review and verify your payment before confirming the booking.
+                      <strong>Instant Payment:</strong> Bakong KHQR provides instant payment verification. 
+                      Your booking will be confirmed immediately after payment.
                     </p>
                   </div>
                 </div>
@@ -289,29 +293,38 @@ const PaymentPage = () => {
           </Card>
         )}
 
-        {/* Step 2: QR Code Payment and Transaction Upload */}
-        {currentStep === 2 && paymentMethod === 'aba_qr' && (
+        {/* Step 2: Bakong KHQR Payment */}
+        {currentStep === 2 && paymentMethod === 'bakong_khqr' && (
           <div className="space-y-6">
-            {/* QR Code Display */}
-            {qrCodeImage ? (
+            {/* KHQR Code Display */}
+            {khqrData ? (
               <Card>
-                <h2 className="text-xl font-semibold mb-6">Scan QR Code to Pay</h2>
+                <h2 className="text-xl font-semibold mb-6">Scan KHQR Code to Pay</h2>
                 
                 <div className="text-center">
                   <div className="inline-block p-4 bg-white rounded-lg border border-gray-200 mb-4">
                     <img 
-                      src={qrCodeImage} 
-                      alt="ABA Payment QR Code" 
+                      src={khqrData.qr_image} 
+                      alt="Bakong KHQR Payment Code" 
                       className="w-64 h-64 object-contain mx-auto"
                     />
                   </div>
                   
                   <div className="space-y-4">
-                    <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                    <div className="bg-green-50 border border-green-200 rounded-lg p-4">
                       <div className="flex items-center justify-center">
-                        <AlertCircle className="w-5 h-5 text-yellow-600 mr-2" />
-                        <p className="text-sm text-yellow-800">
-                          Please pay exactly <strong>{formatCurrency(bookingData.depositAmount)}</strong>
+                        <AlertCircle className="w-5 h-5 text-green-600 mr-2" />
+                        <p className="text-sm text-green-800">
+                          Pay exactly <strong>{formatCurrency(bookingData.depositAmount)}</strong>
+                        </p>
+                      </div>
+                    </div>
+                    
+                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                      <div className="flex items-center justify-center">
+                        <Smartphone className="w-5 h-5 text-blue-600 mr-2" />
+                        <p className="text-sm text-blue-800">
+                          <strong>Merchant:</strong> {khqrData.merchant_name}
                         </p>
                       </div>
                     </div>
@@ -321,127 +334,142 @@ const PaymentPage = () => {
                         variant="outline"
                         onClick={() => {
                           const link = document.createElement('a');
-                          link.href = qrCodeImage;
-                          link.download = 'aba-qr-code.png';
+                          link.href = khqrData.qr_image;
+                          link.download = 'bakong-khqr-code.png';
                           link.click();
                         }}
                       >
                         <Download className="w-4 h-4 mr-2" />
-                        Download QR Code
+                        Download KHQR
                       </Button>
-                    </div>
+                      
+                      </div>
                   </div>
                 </div>
               </Card>
             ) : (
               <Card>
                 <div className="text-center py-8">
-                  <AlertCircle className="w-16 h-16 text-yellow-500 mx-auto mb-4" />
-                  <h3 className="text-lg font-semibold mb-2">QR Code Not Available</h3>
-                  <p className="text-gray-600">The property owner hasn't uploaded their payment QR code yet.</p>
+                  {generatingQR ? (
+                    <>
+                      <Loader2 className="w-16 h-16 text-primary-500 mx-auto mb-4 animate-spin" />
+                      <h3 className="text-lg font-semibold mb-2">Generating KHQR Code...</h3>
+                      <p className="text-gray-600">Please wait while we generate your payment QR code.</p>
+                    </>
+                  ) : (
+                    <>
+                      <AlertCircle className="w-16 h-16 text-yellow-500 mx-auto mb-4" />
+                      <h3 className="text-lg font-semibold mb-2">KHQR Code Not Available</h3>
+                      <p className="text-gray-600">Failed to generate payment QR code.</p>
+                      <Button 
+                        className="mt-4"
+                        onClick={generateKHQRCode}
+                      >
+                        <RefreshCw className="w-4 h-4 mr-2" />
+                        Try Again
+                      </Button>
+                    </>
+                  )}
                 </div>
               </Card>
             )}
 
-            {/* Transaction Upload */}
-            <Card>
-              <h2 className="text-xl font-semibold mb-6">Upload Transaction Receipt</h2>
-              
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Transaction Screenshot <span className="text-red-500">*</span>
-                  </label>
-                  
-                  <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
-                    {transactionImage ? (
-                      <div className="space-y-4">
-                        <div className="relative inline-block">
-                          <img 
-                            src={URL.createObjectURL(transactionImage)} 
-                            alt="Transaction receipt" 
-                            className="max-w-full h-48 object-contain rounded"
-                          />
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => setTransactionImage(null)}
-                            className="absolute top-2 right-2 bg-white"
-                          >
-                            <XCircle className="w-4 h-4" />
-                          </Button>
+            {/* Payment Status and Verification */}
+            {khqrData && (
+              <Card>
+                <h2 className="text-xl font-semibold mb-6">Payment Status</h2>
+                
+                <div className="space-y-4">
+                  {verifyingPayment ? (
+                    <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-6">
+                      <div className="flex items-center justify-center mb-4">
+                        <Loader2 className="w-8 h-8 text-yellow-600 animate-spin mr-3" />
+                        <div>
+                          <h3 className="font-semibold text-yellow-800">Verifying Payment...</h3>
+                          <p className="text-sm text-yellow-700 mt-1">
+                            {paymentStatus?.message || 'Please complete the payment in your Bakong app'}
+                          </p>
                         </div>
-                        <p className="text-sm text-gray-600">{transactionImage.name}</p>
                       </div>
-                    ) : (
-                      <div>
-                        <Upload className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                        <p className="text-gray-600 mb-2">
-                          Click to upload or drag and drop
-                        </p>
-                        <p className="text-sm text-gray-500">
-                          PNG, JPG, GIF up to 5MB
-                        </p>
-                        <input
-                          type="file"
-                          accept="image/*"
-                          onChange={handleImageUpload}
-                          className="hidden"
-                          id="transaction-upload"
-                        />
-                        <Button 
-                          variant="outline" 
-                          className="mt-4"
-                          onClick={() => document.getElementById('transaction-upload').click()}
+                      <div className="flex justify-center">
+                        <Button
+                          variant="outline"
+                          onClick={stopPaymentVerification}
+                          className="text-yellow-700 border-yellow-300 hover:bg-yellow-100"
                         >
-                          Select File
+                          Stop Verification
                         </Button>
                       </div>
-                    )}
-                  </div>
+                    </div>
+                  ) : paymentStatus?.status === 'PAID' ? (
+                    <div className="bg-green-50 border border-green-200 rounded-lg p-6">
+                      <div className="flex items-center justify-center">
+                        <CheckCircle className="w-8 h-8 text-green-600 mr-3" />
+                        <div>
+                          <h3 className="font-semibold text-green-800">Payment Successful!</h3>
+                          <p className="text-sm text-green-700 mt-1">
+                            Your payment has been confirmed and booking submitted.
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  ) : paymentStatus?.status === 'timeout' || paymentStatus?.status === 'error' ? (
+                    <div className="bg-red-50 border border-red-200 rounded-lg p-6">
+                      <div className="flex items-center justify-center">
+                        <XCircle className="w-8 h-8 text-red-600 mr-3" />
+                        <div>
+                          <h3 className="font-semibold text-red-800">Payment Verification Failed</h3>
+                          <p className="text-sm text-red-700 mt-1">
+                            {paymentStatus?.message || 'Could not verify payment. Please try again.'}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex justify-center mt-4">
+                        <Button
+                          onClick={startPaymentVerification}
+                        >
+                          <RefreshCw className="w-4 h-4 mr-2" />
+                          Retry Verification
+                        </Button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="bg-gray-50 border border-gray-200 rounded-lg p-6">
+                      <div className="text-center">
+                        <Clock className="w-8 h-8 text-gray-600 mx-auto mb-3" />
+                        <h3 className="font-semibold text-gray-800 mb-2">Ready for Payment</h3>
+                        <p className="text-sm text-gray-700 mb-4">
+                          Scan the KHQR code above with your Bakong app to complete the payment.
+                        </p>
+                        <Button
+                          onClick={startPaymentVerification}
+                          className="w-full"
+                        >
+                          <Eye className="w-4 h-4 mr-2" />
+                          Start Payment Verification
+                        </Button>
+                      </div>
+                    </div>
+                  )}
                 </div>
+              </Card>
+            )}
 
-                {/* Instructions */}
-                <div className="bg-gray-50 rounded-lg p-4">
-                  <h4 className="font-medium mb-2">Please ensure your screenshot shows:</h4>
-                  <ul className="text-sm text-gray-600 space-y-1">
-                    <li>• Complete transaction details</li>
-                    <li>• Amount paid: {formatCurrency(bookingData.depositAmount)}</li>
-                    <li>• Transaction date and time</li>
-                    <li>• Sender and recipient information</li>
-                  </ul>
-                </div>
-
-                {/* Submit Button */}
-                <div className="flex justify-between">
-                  <Button
-                    variant="outline"
-                    onClick={() => setCurrentStep(1)}
-                  >
-                    <ArrowLeft className="w-4 h-4 mr-2" />
-                    Back
-                  </Button>
-                  
-                  <Button
-                    onClick={handleSubmitPayment}
-                    disabled={!transactionImage || isSubmitting}
-                    className="min-w-[200px]"
-                  >
-                    {isSubmitting ? (
-                      <>
-                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                        Submitting...
-                      </>
-                    ) : (
-                      <>
-                        <CheckCircle className="w-4 h-4 mr-2" />
-                        Submit Transaction
-                      </>
-                    )}
-                  </Button>
-                </div>
-              </div>
-            </Card>
+            {/* Navigation */}
+            <div className="flex justify-between">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setCurrentStep(1);
+                  setKhqrData(null);
+                  setPaymentStatus(null);
+                  stopPaymentVerification();
+                }}
+              >
+                <ArrowLeft className="w-4 h-4 mr-2" />
+                Back
+              </Button>
+            </div>
           </div>
         )}
       </div>

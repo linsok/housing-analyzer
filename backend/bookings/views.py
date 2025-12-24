@@ -24,7 +24,7 @@ class BookingViewSet(viewsets.ModelViewSet):
     
     @action(detail=False, methods=['post'])
     def payment_with_transaction(self, request):
-        """Create booking with transaction receipt using proper payments system"""
+        """Create booking with transaction receipt or Bakong KHQR payment"""
         from properties.models import Property
         from users.models import User
         from payments.models import Payment
@@ -38,18 +38,31 @@ class BookingViewSet(viewsets.ModelViewSet):
             # Extract data from FormData
             property_id = request.data.get('property_id')
             renter_id = request.data.get('renter_id')
-            transaction_image = request.FILES.get('transaction_image')
+            payment_method = request.data.get('payment_method', 'upload')
             amount = request.data.get('amount')
+            bakong_md5_hash = request.data.get('bakong_md5_hash')
+            transaction_image = request.FILES.get('transaction_image')
             
-            print(f"Extracted - property_id: {property_id}, renter_id: {renter_id}, amount: {amount}")
+            print(f"Extracted - property_id: {property_id}, renter_id: {renter_id}, amount: {amount}, payment_method: {payment_method}")
+            print(f"Bakong MD5 hash: {bakong_md5_hash}, Transaction image: {transaction_image}")
             
-            if not all([property_id, renter_id, transaction_image, amount]):
-                error_msg = f"Missing required fields: property_id={property_id}, renter_id={renter_id}, transaction_image={transaction_image}, amount={amount}"
-                print(f"ERROR: {error_msg}")
-                return Response(
-                    {'error': error_msg},
-                    status=status.HTTP_400_BAD_REQUEST
-                )
+            # Validate required fields based on payment method
+            if payment_method == 'bakong_khqr':
+                if not all([property_id, renter_id, amount, bakong_md5_hash]):
+                    error_msg = f"Missing required Bakong fields: property_id={property_id}, renter_id={renter_id}, amount={amount}, bakong_md5_hash={bakong_md5_hash}"
+                    print(f"ERROR: {error_msg}")
+                    return Response(
+                        {'error': error_msg},
+                        status=status.HTTP_400_BAD_REQUEST
+                    )
+            else:
+                if not all([property_id, renter_id, transaction_image, amount]):
+                    error_msg = f"Missing required fields: property_id={property_id}, renter_id={renter_id}, transaction_image={transaction_image}, amount={amount}"
+                    print(f"ERROR: {error_msg}")
+                    return Response(
+                        {'error': error_msg},
+                        status=status.HTTP_400_BAD_REQUEST
+                    )
             
             # Validate property exists
             try:
@@ -87,9 +100,11 @@ class BookingViewSet(viewsets.ModelViewSet):
                 message=request.data.get('notes', ''),
                 deposit_amount=request.data.get('deposit_amount') or request.data.get('amount') or 0,
                 total_amount=request.data.get('total_amount') or request.data.get('amount') or 0,
-                status='pending_review',
+                status='confirmed' if payment_method == 'bakong_khqr' else 'pending_review',
                 transaction_image=transaction_image,
-                transaction_submitted_at=timezone.now()
+                transaction_submitted_at=timezone.now(),
+                bakong_md5_hash=bakong_md5_hash if payment_method == 'bakong_khqr' else None,
+                payment_method=payment_method
             )
             
             print(f"Booking created successfully: {booking.id}")
@@ -100,9 +115,10 @@ class BookingViewSet(viewsets.ModelViewSet):
                 booking=booking,
                 user=renter,
                 amount=amount,
-                payment_method='qr_code',
-                status='pending',
+                payment_method='bakong_khqr' if payment_method == 'bakong_khqr' else 'qr_code',
+                status='completed' if payment_method == 'bakong_khqr' else 'pending',
                 payment_proof=transaction_image,
+                bakong_md5_hash=bakong_md5_hash if payment_method == 'bakong_khqr' else None,
                 description=f'Deposit payment for {property.title}'
             )
             

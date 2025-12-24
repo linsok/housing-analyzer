@@ -6,7 +6,7 @@ from users.serializers import UserSerializer
 class PropertyImageSerializer(serializers.ModelSerializer):
     class Meta:
         model = PropertyImage
-        fields = ['id', 'image', 'caption', 'is_primary', 'is_qr_code', 'order', 'created_at']
+        fields = ['id', 'image', 'caption', 'is_primary', 'order', 'created_at']
 
 
 class PropertyDocumentSerializer(serializers.ModelSerializer):
@@ -62,6 +62,7 @@ class PropertyDetailSerializer(serializers.ModelSerializer):
             'floor_number', 'is_furnished', 'facilities', 'rules', 'pets_allowed',
             'smoking_allowed', 'status', 'verification_status', 'is_verified',
             'view_count', 'favorite_count', 'rating', 'available_from',
+            'use_bakong_payment', 'bakong_bank_account', 'bakong_merchant_name', 'bakong_phone_number',
             'images', 'documents', 'is_favorited', 'created_at', 'updated_at'
         ]
         read_only_fields = [
@@ -86,7 +87,8 @@ class PropertyCreateUpdateSerializer(serializers.ModelSerializer):
             'area', 'postal_code', 'latitude', 'longitude', 'rent_price', 'deposit',
             'currency', 'bedrooms', 'bathrooms', 'area_sqm', 'floor_number',
             'is_furnished', 'facilities', 'rules', 'pets_allowed', 'smoking_allowed',
-            'status', 'available_from'
+            'status', 'available_from', 'use_bakong_payment', 'bakong_bank_account', 
+            'bakong_merchant_name', 'bakong_phone_number'
         ]
     
     def create(self, validated_data):

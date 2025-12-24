@@ -49,6 +49,12 @@ class Booking(models.Model):
     # Payment information
     transaction_image = models.ImageField(upload_to='transactions/', null=True, blank=True)
     transaction_submitted_at = models.DateTimeField(null=True, blank=True)
+    bakong_md5_hash = models.CharField(max_length=255, null=True, blank=True, help_text="MD5 hash for Bakong KHQR payment tracking")
+    payment_method = models.CharField(max_length=20, default='upload', choices=[
+        ('upload', 'Upload Receipt'),
+        ('bakong_khqr', 'Bakong KHQR'),
+        ('stripe', 'Stripe'),
+    ])
     
     # Timestamps
     created_at = models.DateTimeField(auto_now_add=True)

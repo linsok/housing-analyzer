@@ -86,6 +86,30 @@ class Property(models.Model):
     favorite_count = models.IntegerField(default=0)
     rating = models.DecimalField(max_digits=3, decimal_places=2, default=0.00)
     
+    # Bakong Payment Configuration
+    bakong_bank_account = models.CharField(
+        max_length=100, 
+        blank=True, 
+        null=True,
+        help_text="Bakong bank account in format username@bankcode"
+    )
+    bakong_merchant_name = models.CharField(
+        max_length=100, 
+        blank=True, 
+        default='',
+        help_text="Merchant name for KHQR generation"
+    )
+    bakong_phone_number = models.CharField(
+        max_length=20, 
+        blank=True, 
+        default='',
+        help_text="Phone number for KHQR generation"
+    )
+    use_bakong_payment = models.BooleanField(
+        default=False,
+        help_text="Enable Bakong KHQR payment for this property"
+    )
+    
     # Timestamps
     available_from = models.DateField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -109,7 +133,6 @@ class PropertyImage(models.Model):
     image = models.ImageField(upload_to='properties/')
     caption = models.CharField(max_length=200, blank=True)
     is_primary = models.BooleanField(default=False)
-    is_qr_code = models.BooleanField(default=False, help_text='Check if this is a QR code for payment')
     order = models.IntegerField(default=0)
     created_at = models.DateTimeField(auto_now_add=True)
     
