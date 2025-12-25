@@ -43,7 +43,8 @@ const RenterDashboardEnhanced = () => {
       cancelled: 'error',
       rejected: 'error',
     };
-    return <Badge variant={variants[status] || 'default'}>{status}</Badge>;
+    const statusText = status === 'completed' ? 'completed check' : status;
+    return <Badge variant={variants[status] || 'default'}>{statusText}</Badge>;
   };
 
   const COLORS = ['#0ea5e9', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899'];

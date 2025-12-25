@@ -34,6 +34,9 @@ const PaymentPage = () => {
   const [paymentStatus, setPaymentStatus] = useState(null);
   const [verifyingPayment, setVerifyingPayment] = useState(false);
   const [paymentPolling, setPaymentPolling] = useState(null);
+  const [transactionUploadFile, setTransactionUploadFile] = useState(null);
+  const [uploadingTransaction, setUploadingTransaction] = useState(false);
+  const [showTransactionUpload, setShowTransactionUpload] = useState(false);
   
   // Get booking data from sessionStorage
   useEffect(() => {
@@ -121,8 +124,41 @@ const PaymentPage = () => {
       paymentPolling.stop();
     }
     
+    setShowTransactionUpload(true);
+    toast.success('Payment confirmed! Please upload your transaction receipt.');
+  };
+
+  const handleTransactionFileChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      // Validate file type and size
+      const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'application/pdf'];
+      const maxSize = 5 * 1024 * 1024; // 5MB
+      
+      if (!allowedTypes.includes(file.type)) {
+        toast.error('Please upload an image (JPEG, PNG, GIF) or PDF file');
+        return;
+      }
+      
+      if (file.size > maxSize) {
+        toast.error('File size must be less than 5MB');
+        return;
+      }
+      
+      setTransactionUploadFile(file);
+    }
+  };
+
+  const handleTransactionUpload = async () => {
+    if (!transactionUploadFile) {
+      toast.error('Please select a transaction receipt file');
+      return;
+    }
+
+    setUploadingTransaction(true);
+    
     try {
-      // Submit booking with Bakong payment confirmation
+      // Submit booking with Bakong payment confirmation and transaction upload
       const formData = new FormData();
       formData.append('property_id', bookingData.propertyId);
       formData.append('renter_id', user.id);
@@ -130,6 +166,7 @@ const PaymentPage = () => {
       formData.append('amount', bookingData.depositAmount);
       formData.append('bakong_md5_hash', khqrData.md5_hash);
       formData.append('payment_status', 'completed');
+      formData.append('transaction_image', transactionUploadFile);
       
       // Add booking details
       Object.keys(bookingData).forEach(key => {
@@ -148,7 +185,7 @@ const PaymentPage = () => {
 
       const response = await bookingService.submitPaymentWithTransaction(formData);
       
-      toast.success('Payment confirmed! Your booking has been submitted.');
+      toast.success('Transaction receipt uploaded successfully! Your booking has been submitted.');
       sessionStorage.removeItem('bookingData');
       
       navigate('/booking-confirmation', { 
@@ -159,8 +196,10 @@ const PaymentPage = () => {
       });
       
     } catch (error) {
-      console.error('Error submitting booking:', error);
-      toast.error('Payment confirmed but failed to submit booking. Please contact support.');
+      console.error('Error uploading transaction:', error);
+      toast.error('Failed to upload transaction receipt. Please try again.');
+    } finally {
+      setUploadingTransaction(false);
     }
   };
 
@@ -403,15 +442,89 @@ const PaymentPage = () => {
                     </div>
                   ) : paymentStatus?.status === 'PAID' ? (
                     <div className="bg-green-50 border border-green-200 rounded-lg p-6">
-                      <div className="flex items-center justify-center">
+                      <div className="flex items-center justify-center mb-4">
                         <CheckCircle className="w-8 h-8 text-green-600 mr-3" />
                         <div>
                           <h3 className="font-semibold text-green-800">Payment Successful!</h3>
                           <p className="text-sm text-green-700 mt-1">
-                            Your payment has been confirmed and booking submitted.
+                            Your payment has been confirmed. Please upload your transaction receipt to complete the booking.
                           </p>
                         </div>
                       </div>
+                      
+                      {showTransactionUpload && (
+                        <div className="mt-6 bg-white border border-gray-200 rounded-lg p-6">
+                          <h4 className="font-semibold text-gray-800 mb-4">Upload Transaction Receipt</h4>
+                          
+                          <div className="space-y-4">
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700 mb-2">
+                                Transaction Receipt (Required)
+                              </label>
+                              <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-gray-400 transition-colors">
+                                <input
+                                  type="file"
+                                  id="transaction-upload"
+                                  className="hidden"
+                                  accept="image/jpeg,image/jpg,image/png,image/gif,application/pdf"
+                                  onChange={handleTransactionFileChange}
+                                  disabled={uploadingTransaction}
+                                />
+                                <label
+                                  htmlFor="transaction-upload"
+                                  className="cursor-pointer"
+                                >
+                                  <Upload className="w-12 h-12 text-gray-400 mx-auto mb-3" />
+                                  <p className="text-sm text-gray-600 mb-2">
+                                    Click to upload or drag and drop
+                                  </p>
+                                  <p className="text-xs text-gray-500">
+                                    JPEG, PNG, GIF, or PDF (MAX. 5MB)
+                                  </p>
+                                </label>
+                              </div>
+                              
+                              {transactionUploadFile && (
+                                <div className="mt-4 p-3 bg-gray-50 rounded-lg">
+                                  <div className="flex items-center justify-between">
+                                    <div className="flex items-center">
+                                      <Upload className="w-4 h-4 text-green-600 mr-2" />
+                                      <span className="text-sm text-gray-700">{transactionUploadFile.name}</span>
+                                    </div>
+                                    <button
+                                      onClick={() => setTransactionUploadFile(null)}
+                                      className="text-red-500 hover:text-red-700"
+                                      disabled={uploadingTransaction}
+                                    >
+                                      <XCircle className="w-4 h-4" />
+                                    </button>
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                            
+                            <div className="flex justify-center">
+                              <Button
+                                onClick={handleTransactionUpload}
+                                disabled={!transactionUploadFile || uploadingTransaction}
+                                className="w-full"
+                              >
+                                {uploadingTransaction ? (
+                                  <>
+                                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                    Uploading...
+                                  </>
+                                ) : (
+                                  <>
+                                    <Upload className="w-4 h-4 mr-2" />
+                                    Upload Transaction
+                                  </>
+                                )}
+                              </Button>
+                            </div>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   ) : paymentStatus?.status === 'timeout' || paymentStatus?.status === 'error' ? (
                     <div className="bg-red-50 border border-red-200 rounded-lg p-6">

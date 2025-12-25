@@ -181,7 +181,7 @@ const BookingConfirmation = () => {
                     Deposit: {formatCurrency(booking.deposit_amount)}
                   </p>
                   <p className="text-sm text-gray-600">
-                    Method: ABA Mobile (QR Code)
+                    Method: Bakong KHQR
                   </p>
                 </div>
               </div>
@@ -233,6 +233,10 @@ const BookingConfirmation = () => {
                   <div className="flex items-start gap-2">
                     <div className="w-1.5 h-1.5 rounded-full bg-primary-500 mt-1.5"></div>
                     <p>Payment verification process (usually within 24 hours)</p>
+                  </div>
+                  <div className="flex items-start gap-2">
+                    <div className="w-1.5 h-1.5 rounded-full bg-primary-500 mt-1.5"></div>
+                    <p>Please wait until the property owner has completed the check.</p>
                   </div>
                   <div className="flex items-start gap-2">
                     <div className="w-1.5 h-1.5 rounded-full bg-primary-500 mt-1.5"></div>

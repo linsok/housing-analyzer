@@ -673,17 +673,22 @@ def renter_analytics(request):
             monthly_spending = bookings.filter(
                 status__in=['confirmed', 'completed'],
                 created_at__gte=twelve_months_ago
-            ).annotate(
-                month=TruncMonth('created_at')
-            ).values('month').annotate(
+            ).extra({
+                'month': "strftime('%%m-%%Y', created_at)",
+                'year': "strftime('%%Y', created_at)",
+                'month_num': "strftime('%%m', created_at)"
+            }).values('month', 'year', 'month_num').annotate(
                 amount=Sum('total_amount'),
                 count=Count('id')
-            ).order_by('month')
+            ).order_by('year', 'month_num')
             
             monthly_spending_data = []
             for item in monthly_spending:
+                month_names = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+                month_num = int(item['month_num'])
+                month_name = month_names[month_num - 1]
                 monthly_spending_data.append({
-                    'month': item['month'].strftime('%b %Y'),
+                    'month': f"{month_name} {item['year']}",
                     'amount': float(item['amount'] or 0),
                     'bookings': item['count']
                 })
@@ -697,9 +702,9 @@ def renter_analytics(request):
             yearly_spending = bookings.filter(
                 status__in=['confirmed', 'completed'],
                 created_at__gte=three_years_ago
-            ).annotate(
-                year=TruncYear('created_at')
-            ).values('year').annotate(
+            ).extra({
+                'year': "strftime('%%Y', created_at)"
+            }).values('year').annotate(
                 amount=Sum('total_amount'),
                 count=Count('id')
             ).order_by('year')
@@ -707,7 +712,7 @@ def renter_analytics(request):
             yearly_spending_data = []
             for item in yearly_spending:
                 yearly_spending_data.append({
-                    'year': item['year'].year,
+                    'year': int(item['year']),
                     'amount': float(item['amount'] or 0),
                     'bookings': item['count']
                 })
