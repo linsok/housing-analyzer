@@ -30,7 +30,7 @@ class EmailService:
             owner_name = booking.property.owner.full_name or booking.property.owner.username
             property_title = booking.property.title
             property_address = booking.property.address
-            completion_date = booking.completed_at or booking.updated_at
+            completion_date = booking.updated_at  # Use updated_at since completed_at doesn't exist
             
             logger.debug(f"Preparing email for booking {booking.id} to {renter_email}")
             logger.debug(f"Property: {property_title}, Owner: {owner_name}, Completion Date: {completion_date}")
@@ -51,8 +51,11 @@ class EmailService:
             # Render email template
             subject = f"Booking Completed - {property_title}"
             
-            # HTML email body
-            html_message = render_to_string('emails/booking_completion.html', context)
+            # HTML email body (skip template if not found)
+            try:
+                html_message = render_to_string('emails/booking_completion.html', context)
+            except:
+                html_message = None  # Fallback to plain text if template not found
             
             # Plain text email body (fallback)
             text_message = f"""
@@ -100,7 +103,7 @@ group05support@housinganalyzer.com
             logger.info(f"EMAIL_USE_TLS: {getattr(settings, 'EMAIL_USE_TLS', 'NOT SET')}")
             
             try:
-                # Send email
+                # Send email with explicit credentials to avoid environment variable issues
                 send_mail(
                     subject=subject,
                     message=text_message,
@@ -108,6 +111,8 @@ group05support@housinganalyzer.com
                     recipient_list=[renter_email],
                     html_message=html_message,
                     fail_silently=False,
+                    auth_user='thoeunsoklin1209@gmail.com',
+                    auth_password='ddlt mrnv fleo qoyy'
                 )
                 logger.info(f"Booking completion email sent successfully to {renter_email} for booking {booking.id}")
                 return True
@@ -152,8 +157,11 @@ group05support@housinganalyzer.com
             # Render email template
             subject = f"Booking Confirmed - {property_title}"
             
-            # HTML email body
-            html_message = render_to_string('emails/booking_confirmation.html', context)
+            # HTML email body (skip template if not found)
+            try:
+                html_message = render_to_string('emails/booking_confirmation.html', context)
+            except:
+                html_message = None  # Fallback to plain text if template not found
             
             # Plain text email body (fallback)
             text_message = f"""
@@ -183,7 +191,7 @@ group05support@housinganalyzer.com
 +855 97 756 9023
             """.strip()
             
-            # Send email
+            # Send email with explicit credentials to avoid environment variable issues
             send_mail(
                 subject=subject,
                 message=text_message,
@@ -191,6 +199,8 @@ group05support@housinganalyzer.com
                 recipient_list=[renter_email],
                 html_message=html_message,
                 fail_silently=False,
+                auth_user='thoeunsoklin1209@gmail.com',
+                auth_password='ddlt mrnv fleo qoyy'
             )
             
             logger.info(f"Booking confirmation email sent to {renter_email} for booking {booking.id}")

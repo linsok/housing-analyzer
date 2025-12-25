@@ -13,6 +13,7 @@ from bookings.models import Booking
 from reviews.models import Review
 from decimal import Decimal
 from datetime import datetime, timedelta
+from django.utils import timezone
 
 User = get_user_model()
 
@@ -228,7 +229,7 @@ bookings_data = [
         'property': properties[0],
         'renter': renters[0],
         'booking_type': 'rental',
-        'start_date': datetime.now().date(),
+        'start_date': timezone.now().date(),
         'monthly_rent': properties[0].rent_price,
         'deposit_amount': properties[0].deposit,
         'total_amount': properties[0].rent_price + properties[0].deposit,
@@ -238,7 +239,7 @@ bookings_data = [
         'property': properties[2],
         'renter': renters[1],
         'booking_type': 'rental',
-        'start_date': datetime.now().date() - timedelta(days=30),
+        'start_date': (timezone.now() - timedelta(days=30)).date(),
         'monthly_rent': properties[2].rent_price,
         'deposit_amount': properties[2].deposit,
         'total_amount': properties[2].rent_price + properties[2].deposit,
@@ -248,8 +249,8 @@ bookings_data = [
         'property': properties[3],
         'renter': renters[2],
         'booking_type': 'visit',
-        'start_date': datetime.now().date() + timedelta(days=2),
-        'visit_time': datetime.now() + timedelta(days=2),
+        'start_date': (timezone.now() + timedelta(days=2)).date(),
+        'visit_time': timezone.now() + timedelta(days=2),
         'status': 'pending',
     },
 ]

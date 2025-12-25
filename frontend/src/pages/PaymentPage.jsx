@@ -503,21 +503,21 @@ const PaymentPage = () => {
                               )}
                             </div>
                             
-                            <div className="flex justify-center">
+                            <div className="flex justify-center gap-3">
                               <Button
                                 onClick={handleTransactionUpload}
                                 disabled={!transactionUploadFile || uploadingTransaction}
-                                className="w-full"
+                                className="flex-1 bg-green-600 hover:bg-green-700 text-white"
                               >
                                 {uploadingTransaction ? (
                                   <>
                                     <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                                    Uploading...
+                                    Submitting...
                                   </>
                                 ) : (
                                   <>
                                     <Upload className="w-4 h-4 mr-2" />
-                                    Upload Transaction
+                                    Submit Booking For Check
                                   </>
                                 )}
                               </Button>

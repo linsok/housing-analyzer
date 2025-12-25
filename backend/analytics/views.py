@@ -684,14 +684,15 @@ def renter_analytics(request):
             
             monthly_spending_data = []
             for item in monthly_spending:
-                month_names = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
-                month_num = int(item['month_num'])
-                month_name = month_names[month_num - 1]
-                monthly_spending_data.append({
-                    'month': f"{month_name} {item['year']}",
-                    'amount': float(item['amount'] or 0),
-                    'bookings': item['count']
-                })
+                if item['month_num'] is not None and item['year'] is not None:
+                    month_names = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+                    month_num = int(item['month_num'])
+                    month_name = month_names[month_num - 1]
+                    monthly_spending_data.append({
+                        'month': f"{month_name} {item['year']}",
+                        'amount': float(item['amount'] or 0),
+                        'bookings': item['count']
+                    })
         except Exception as e:
             logger.error(f"Error calculating monthly spending: {str(e)}", exc_info=True)
             monthly_spending_data = []
@@ -711,11 +712,12 @@ def renter_analytics(request):
             
             yearly_spending_data = []
             for item in yearly_spending:
-                yearly_spending_data.append({
-                    'year': int(item['year']),
-                    'amount': float(item['amount'] or 0),
-                    'bookings': item['count']
-                })
+                if item['year'] is not None:
+                    yearly_spending_data.append({
+                        'year': int(item['year']),
+                        'amount': float(item['amount'] or 0),
+                        'bookings': item['count']
+                    })
         except Exception as e:
             logger.error(f"Error calculating yearly spending: {str(e)}", exc_info=True)
             yearly_spending_data = []
