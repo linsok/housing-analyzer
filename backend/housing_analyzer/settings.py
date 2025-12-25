@@ -207,7 +207,13 @@ if not DEBUG:
     X_FRAME_OPTIONS = 'DENY'
 
 # Email settings (configure for production)
-EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = config('EMAIL_HOST', default='smtp.gmail.com')
+EMAIL_PORT = config('EMAIL_PORT', default=587, cast=int)
+EMAIL_USE_TLS = config('EMAIL_USE_TLS', default=True, cast=bool)
+EMAIL_HOST_USER = config('EMAIL_HOST_USER', default='')
+EMAIL_HOST_PASSWORD = config('EMAIL_HOST_PASSWORD', default='')
+DEFAULT_FROM_EMAIL = config('DEFAULT_FROM_EMAIL', default='noreply@housinganalyzer.com')
 
 # Payment settings
 STRIPE_PUBLIC_KEY = config('STRIPE_PUBLIC_KEY', default='')
@@ -222,3 +228,15 @@ BAKONG_BANK_ACCOUNT = config('BAKONG_BANK_ACCOUNT', default='')
 BAKONG_MERCHANT_NAME = config('BAKONG_MERCHANT_NAME', default='Housing Analyzer')
 BAKONG_MERCHANT_CITY = config('BAKONG_MERCHANT_CITY', default='Phnom Penh')
 BAKONG_PHONE_NUMBER = config('BAKONG_PHONE_NUMBER', default='')
+
+
+
+# Add this at the end of settings.py
+print("\n=== Email Configuration ===")
+print(f"EMAIL_BACKEND: {EMAIL_BACKEND}")
+print(f"EMAIL_HOST: {EMAIL_HOST}")
+print(f"EMAIL_PORT: {EMAIL_PORT}")
+print(f"EMAIL_USE_TLS: {EMAIL_USE_TLS}")
+print(f"EMAIL_HOST_USER: {'set' if EMAIL_HOST_USER else 'NOT SET'}")
+print(f"DEFAULT_FROM_EMAIL: {DEFAULT_FROM_EMAIL}")
+print("=========================\n")

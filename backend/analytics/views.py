@@ -2,7 +2,7 @@ from rest_framework import viewsets, permissions
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
 from django.db.models import Avg, Count, Min, Max, Q, Sum, F
-from django.db.models.functions import TruncMonth, TruncDate, TruncYear
+from django.db.models.functions import TruncMonth, TruncDate, TruncYear, ExtractYear, ExtractMonth
 from datetime import datetime, timedelta, timezone
 from dateutil.relativedelta import relativedelta
 from django.utils import timezone as django_timezone
@@ -673,11 +673,11 @@ def renter_analytics(request):
             monthly_spending = bookings.filter(
                 status__in=['confirmed', 'completed'],
                 created_at__gte=twelve_months_ago
-            ).extra({
-                'month': "strftime('%%m-%%Y', created_at)",
-                'year': "strftime('%%Y', created_at)",
-                'month_num': "strftime('%%m', created_at)"
-            }).values('month', 'year', 'month_num').annotate(
+            ).annotate(
+                month=TruncMonth('created_at'),
+                year=ExtractYear('created_at'),
+                month_num=ExtractMonth('created_at')
+            ).values('month', 'year', 'month_num').annotate(
                 amount=Sum('total_amount'),
                 count=Count('id')
             ).order_by('year', 'month_num')
@@ -702,9 +702,9 @@ def renter_analytics(request):
             yearly_spending = bookings.filter(
                 status__in=['confirmed', 'completed'],
                 created_at__gte=three_years_ago
-            ).extra({
-                'year': "strftime('%%Y', created_at)"
-            }).values('year').annotate(
+            ).annotate(
+                year=ExtractYear('created_at')
+            ).values('year').annotate(
                 amount=Sum('total_amount'),
                 count=Count('id')
             ).order_by('year')

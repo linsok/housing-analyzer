@@ -186,7 +186,9 @@ class BookingViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=['post'])
     def complete(self, request, pk=None):
         """Mark booking as completed"""
+        print("\n=== Starting complete action ===")  # Debug log
         booking = self.get_object()
+        print(f"Booking ID: {booking.id}, Status: {booking.status}")  # Debug log
         
         if booking.property.owner != request.user:
             return Response(
@@ -195,7 +197,15 @@ class BookingViewSet(viewsets.ModelViewSet):
             )
         
         booking.status = 'completed'
+        booking.completed_at = timezone.now()
         booking.save()
+        print(f"Booking marked as completed. New status: {booking.status}")  # Debug log
+        
+        # Send email notification to renter
+        from utils.email_service import EmailService
+        print("About to send email notification...")  # Debug log
+        email_sent = EmailService.send_booking_completion_notification(booking)
+        print(f"Email sending {'succeeded' if email_sent else 'failed'}")  # Debug log
         
         serializer = self.get_serializer(booking)
         return Response(serializer.data)
