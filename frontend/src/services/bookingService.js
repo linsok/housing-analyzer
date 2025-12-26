@@ -21,8 +21,8 @@ export const bookingService = {
     return response.data;
   },
 
-  async cancelBooking(id) {
-    const response = await api.post(`/bookings/${id}/cancel/`);
+  async cancelBooking(id, data = {}) {
+    const response = await api.post(`/bookings/${id}/cancel/`, data);
     return response.data;
   },
 
@@ -62,17 +62,19 @@ export const bookingService = {
   },
 
   async getViewings(params = {}) {
-    const response = await api.get('/bookings/viewings/', { params });
+    const response = await api.get('/bookings/', { params });
     return response.data;
   },
 
   async getViewingRequests(propertyId) {
-    const response = await api.get(`/bookings/viewings/requests/${propertyId}/`);
+    const response = await api.get('/bookings/viewing_requests/', {
+      params: { property_id: propertyId }
+    });
     return response.data;
   },
 
   async updateViewingStatus(id, status) {
-    const response = await api.patch(`/bookings/viewings/${id}/`, { status });
+    const response = await api.patch(`/bookings/${id}/`, { status });
     return response.data;
   },
 
@@ -92,8 +94,8 @@ export const bookingService = {
 
   // Availability checking
   async checkAvailability(propertyId, date) {
-    const response = await api.get(`/bookings/availability/${propertyId}/`, {
-      params: { date }
+    const response = await api.get('/bookings/availability/', {
+      params: { property_id: propertyId, date }
     });
     return response.data;
   },

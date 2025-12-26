@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { propertyService } from '../services/propertyService';
+import { authService } from '../services/authService';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { FaEdit, FaTrash, FaPlus, FaEye, FaSearch, FaTimes, FaHeart, FaPlay, FaPause } from 'react-icons/fa';
@@ -22,24 +23,12 @@ const OwnerProperties = () => {
 
   const loadUserProfile = async () => {
     try {
-      // Get current user profile
-      const response = await fetch('/api/auth/users/profile/', {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        }
-      });
-      
-      if (!response.ok) {
-        throw new Error('Failed to load profile');
-      }
-      
-      const data = await response.json();
-      console.log('User profile loaded:', data); // Debug log
-      setUserProfile(data);
+      // Get current user profile using the API service
+      const profile = await authService.getProfile();
+      setUserProfile(profile);
     } catch (error) {
       console.error('Error loading user profile:', error);
-      // Set userProfile to null to ensure verification check fails
-      setUserProfile(null);
+      // Don't show error toast for profile loading, just log it
     }
   };
 
@@ -610,20 +599,20 @@ const OwnerProperties = () => {
                     <p className="text-gray-900">{viewProperty.pets_allowed ? 'Yes' : 'No'}</p>
                   </div>
                   <div>
-                    <label className="text-sm font-medium text-gray-600">Parking Available</label>
-                    <p className="text-gray-900">{viewProperty.parking_available ? 'Yes' : 'No'}</p>
-                  </div>
-                  <div>
                     <label className="text-sm font-medium text-gray-600">Air Conditioning</label>
-                    <p className="text-gray-900">{viewProperty.air_conditioning ? 'Yes' : 'No'}</p>
+                    <p className="text-gray-900">{viewProperty.facilities?.includes('ac') ? 'Yes' : 'No'}</p>
                   </div>
                   <div>
                     <label className="text-sm font-medium text-gray-600">Swimming Pool</label>
-                    <p className="text-gray-900">{viewProperty.swimming_pool ? 'Yes' : 'No'}</p>
+                    <p className="text-gray-900">{viewProperty.facilities?.includes('pool') ? 'Yes' : 'No'}</p>
                   </div>
                   <div>
                     <label className="text-sm font-medium text-gray-600">Gym/Fitness</label>
-                    <p className="text-gray-900">{viewProperty.gym ? 'Yes' : 'No'}</p>
+                    <p className="text-gray-900">{viewProperty.facilities?.includes('gym') ? 'Yes' : 'No'}</p>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-gray-600">Parking Available</label>
+                    <p className="text-gray-900">{viewProperty.facilities?.includes('parking') ? 'Yes' : 'No'}</p>
                   </div>
                 </div>
               </div>

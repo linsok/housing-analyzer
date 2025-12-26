@@ -17,8 +17,11 @@ import OwnerAnalytics from './pages/OwnerAnalytics';
 import Profile from './pages/Profile';
 import Favorites from './pages/Favorites';
 import RenterDashboardEnhanced from './pages/RenterDashboardEnhanced';
+import MyRoomBookings from './pages/MyRoomBookings';
+import MyVisitBookings from './pages/MyVisitBookings';
 import OwnerProperties from './pages/OwnerProperties';
 import OwnerBookings from './pages/OwnerBookings';
+import ManageViewBookings from './pages/ManageViewBookings';
 import PaymentPage from './pages/PaymentPage';
 import BookingConfirmation from './pages/BookingConfirmation';
 import { useAuthStore } from './store/useAuthStore';
@@ -114,6 +117,22 @@ function App() {
                   }
                 />
                 <Route
+                  path="/renter/room-bookings"
+                  element={
+                    <ProtectedRoute allowedRoles={['renter']}>
+                      <MyRoomBookings />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/renter/visit-bookings"
+                  element={
+                    <ProtectedRoute allowedRoles={['renter']}>
+                      <MyVisitBookings />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
                   path="/favorites"
                   element={
                     <ProtectedRoute allowedRoles={['renter']}>
@@ -160,6 +179,14 @@ function App() {
                   element={
                     <ProtectedRoute allowedRoles={['owner']}>
                       <OwnerBookings />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/owner/view-bookings"
+                  element={
+                    <ProtectedRoute allowedRoles={['owner']}>
+                      <ManageViewBookings />
                     </ProtectedRoute>
                   }
                 />

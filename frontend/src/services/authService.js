@@ -56,6 +56,11 @@ export const authService = {
     return response.data;
   },
 
+  async getProfile() {
+    const response = await api.get('/auth/users/profile/');
+    return response.data;
+  },
+
   async uploadVerification(formData) {
     const response = await api.post('/auth/users/upload_verification/', formData, {
       headers: { 'Content-Type': 'multipart/form-data' },
