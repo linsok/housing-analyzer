@@ -12,6 +12,12 @@ export const reviewService = {
     return response.data;
   },
 
+  async updateReview(reviewId, data) {
+    console.log('reviewService.updateReview called with:', { reviewId, data });
+    const response = await api.put(`/reviews/${reviewId}/`, data);
+    return response.data;
+  },
+
   async respondToReview(reviewId, ownerResponse) {
     const response = await api.post(`/reviews/${reviewId}/respond/`, { owner_response: ownerResponse });
     return response.data;

@@ -24,7 +24,22 @@ class ReviewViewSet(viewsets.ModelViewSet):
     def get_permissions(self):
         if self.action in ['list', 'retrieve']:
             return [permissions.AllowAny()]
+        elif self.action == 'respond':
+            return [permissions.IsAuthenticated()]
         return [permissions.IsAuthenticated()]
+    
+    def perform_update(self, serializer):
+        """Only allow users to update their own reviews"""
+        if serializer.instance.reviewer != self.request.user:
+            raise permissions.PermissionDenied("You can only update your own reviews")
+        
+        # Debug logging
+        print(f"Updating review {serializer.instance.id}")
+        print(f"User: {self.request.user}")
+        print(f"Validated data: {serializer.validated_data}")
+        print(f"Instance property: {serializer.instance.property}")
+        
+        serializer.save()
     
     @action(detail=True, methods=['post'])
     def respond(self, request, pk=None):

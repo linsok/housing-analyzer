@@ -32,6 +32,9 @@ const PropertyPublicView = () => {
   const [userRating, setUserRating] = useState(0);
   const [reviews, setReviews] = useState([]);
   const [isSubmittingRating, setIsSubmittingRating] = useState(false);
+  const [comments, setComments] = useState([]);
+  const [newComment, setNewComment] = useState('');
+  const [isSubmittingComment, setIsSubmittingComment] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -83,9 +86,20 @@ const PropertyPublicView = () => {
       }
     };
 
+    const fetchComments = async () => {
+      try {
+        // For now, we'll use reviews as comments since they have comment field
+        const data = await reviewService.getReviews(id);
+        setComments(data.results || data);
+      } catch (err) {
+        console.error('Error fetching comments:', err);
+      }
+    };
+
     if (id) {
       fetchProperty();
       fetchReviews();
+      fetchComments();
     } else {
       setError('No property ID provided');
       setLoading(false);
@@ -317,6 +331,72 @@ const PropertyPublicView = () => {
       toast.error(error.response?.data?.message || 'Failed to submit rating. Please try again.');
     } finally {
       setIsSubmittingRating(false);
+    }
+  };
+
+  const handleCommentSubmit = async (e) => {
+    e.preventDefault();
+    
+    if (!isAuthenticated) {
+      toast.error('Please login to comment');
+      navigate('/login', { state: { from: `/properties/${id}` } });
+      return;
+    }
+
+    if (!newComment.trim()) {
+      toast.error('Please enter a comment');
+      return;
+    }
+
+    setIsSubmittingComment(true);
+    try {
+      // Check if user already has a review for this property
+      const existingReview = reviews.find(review => review.reviewer?.id === user.id);
+      
+      if (existingReview) {
+        // Update existing review by appending to comment
+        const updatedComment = existingReview.comment 
+          ? `${existingReview.comment}\n\n---\n\n${newComment.trim()}`
+          : newComment.trim();
+        
+        console.log('Updating review with ID:', existingReview.id);
+        console.log('Update data:', {
+          comment: updatedComment,
+          title: existingReview.title || 'Review',
+          overall_rating: existingReview.overall_rating || 1
+        });
+        
+        await reviewService.updateReview(existingReview.id, {
+          comment: updatedComment,
+          title: existingReview.title || 'Review',
+          overall_rating: existingReview.overall_rating || 1,
+          property: property.id // Explicitly send property ID
+        });
+        
+        setNewComment('');
+        toast.success('Comment added to your existing review!');
+      } else {
+        // Create new review
+        await reviewService.createReview({
+          property: property.id,
+          overall_rating: 1, // Minimum rating of 1 for comments
+          title: 'Comment',
+          comment: newComment.trim()
+        });
+        
+        setNewComment('');
+        toast.success('Comment posted successfully!');
+      }
+      
+      // Refresh comments
+      const data = await reviewService.getReviews(id);
+      setComments(data.results || data);
+    } catch (error) {
+      console.error('Error submitting comment:', error);
+      console.error('Error response data:', error.response?.data);
+      toast.error(error.response?.data?.message || error.response?.data?.detail || 'Failed to post comment. Please try again.');
+    } finally {
+      setIsSubmittingComment(false);
     }
   };
 
@@ -939,6 +1019,110 @@ const PropertyPublicView = () => {
               </div>
             </div>
           )}
+        </div>
+      </div>
+
+      {/* COMMENTS SECTION */}
+      <div className="bg-white rounded-lg shadow-md overflow-hidden mt-6">
+        <div className="p-6">
+          <h2 className="text-xl font-semibold mb-4">Property Comments</h2>
+          
+          {/* Comment Form */}
+          {isAuthenticated && (
+            <div className="mb-6 p-4 bg-gray-50 rounded-lg">
+              <form onSubmit={handleCommentSubmit} className="space-y-3">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Leave a Comment
+                  </label>
+                  <textarea
+                    value={newComment}
+                    onChange={(e) => setNewComment(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500"
+                    rows="3"
+                    placeholder="Share your thoughts about this property..."
+                    required
+                  />
+                </div>
+                <div className="flex justify-end">
+                  <Button
+                    type="submit"
+                    disabled={isSubmittingComment || !newComment.trim()}
+                    className="flex items-center"
+                  >
+                    {isSubmittingComment ? (
+                      <>
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                        Posting...
+                      </>
+                    ) : (
+                      <>
+                        <Send className="w-4 h-4 mr-2" />
+                        Post Comment
+                      </>
+                    )}
+                  </Button>
+                </div>
+              </form>
+            </div>
+          )}
+
+          {/* Comments List */}
+          <div className="space-y-4">
+            {comments.length > 0 ? (
+              comments.map((comment, index) => (
+                <div key={comment.id || index} className="border-b border-gray-200 pb-4 last:border-b-0">
+                  <div className="flex items-start gap-3">
+                    <div className="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center flex-shrink-0">
+                      {comment.reviewer?.profile_picture ? (
+                        <img
+                          src={comment.reviewer.profile_picture}
+                          alt={comment.reviewer.full_name}
+                          className="w-full h-full rounded-full object-cover"
+                        />
+                      ) : (
+                        <span className="text-sm font-semibold text-gray-600">
+                          {comment.reviewer?.full_name?.[0] || 'U'}
+                        </span>
+                      )}
+                    </div>
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="font-medium text-gray-900">
+                          {comment.reviewer?.full_name || 'Anonymous'}
+                        </span>
+                        {comment.overall_rating > 0 && (
+                          <div className="flex items-center">
+                            {[...Array(5)].map((_, i) => (
+                              <Star
+                                key={i}
+                                className={`w-3 h-3 ${
+                                  i < comment.overall_rating
+                                    ? 'fill-yellow-400 text-yellow-400'
+                                    : 'fill-gray-200 text-gray-300'
+                                }`}
+                              />
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                      <p className="text-gray-700 text-sm mb-2">
+                        {comment.comment}
+                      </p>
+                      <div className="text-xs text-gray-500">
+                        {new Date(comment.created_at).toLocaleDateString()}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))
+            ) : (
+              <div className="text-center py-8 text-gray-500">
+                <MessageCircle className="w-12 h-12 mx-auto mb-3 text-gray-300" />
+                <p>No comments yet. Be the first to share your thoughts!</p>
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </div>

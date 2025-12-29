@@ -15,11 +15,24 @@ class ReviewSerializer(serializers.ModelSerializer):
             'title', 'comment', 'is_verified', 'owner_response', 'responded_at',
             'created_at', 'updated_at'
         ]
-        read_only_fields = ['reviewer', 'is_verified', 'owner_response', 'responded_at']
+        read_only_fields = ['is_verified', 'owner_response', 'responded_at']
     
     def create(self, validated_data):
         validated_data['reviewer'] = self.context['request'].user
         return super().create(validated_data)
+    
+    def update(self, instance, validated_data):
+        # Don't allow changing the reviewer or property
+        validated_data.pop('reviewer', None)
+        # Ensure property is set from instance (can't be changed)
+        if 'property' not in validated_data:
+            validated_data['property'] = instance.property.id
+        
+        # Debug logging
+        print(f"Serializer update - instance: {instance}")
+        print(f"Serializer update - validated_data: {validated_data}")
+        
+        return super().update(instance, validated_data)
 
 
 class OwnerResponseSerializer(serializers.Serializer):
