@@ -7,10 +7,12 @@ import {
 } from 'lucide-react';
 import { propertyService } from '../services/propertyService';
 import { bookingService } from '../services/bookingService';
+import { reviewService } from '../services/reviewService';
 import { useAuthStore } from '../store/useAuthStore';
 import Button from '../components/ui/Button';
 import Loading from '../components/ui/Loading';
 import ImageViewer from '../components/ImageViewer';
+import StarRating from '../components/StarRating';
 import { toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
@@ -27,6 +29,9 @@ const PropertyPublicView = () => {
   const [showBookingModal, setShowBookingModal] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [userRating, setUserRating] = useState(0);
+  const [reviews, setReviews] = useState([]);
+  const [isSubmittingRating, setIsSubmittingRating] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -61,13 +66,31 @@ const PropertyPublicView = () => {
       }
     };
 
+    const fetchReviews = async () => {
+      try {
+        const data = await reviewService.getReviews(id);
+        setReviews(data.results || data);
+        
+        // Check if current user has already rated
+        if (isAuthenticated) {
+          const userReview = (data.results || data).find(review => review.reviewer?.id === user.id);
+          if (userReview) {
+            setUserRating(userReview.overall_rating);
+          }
+        }
+      } catch (err) {
+        console.error('Error fetching reviews:', err);
+      }
+    };
+
     if (id) {
       fetchProperty();
+      fetchReviews();
     } else {
       setError('No property ID provided');
       setLoading(false);
     }
-  }, [id]);
+  }, [id, isAuthenticated, user]);
 
   const handleContactOwner = () => {
     if (!isAuthenticated) {
@@ -264,6 +287,39 @@ const PropertyPublicView = () => {
     }
   };
 
+  const handleRatingSubmit = async (rating) => {
+    if (!isAuthenticated) {
+      toast.error('Please login to rate this property');
+      navigate('/login', { state: { from: `/properties/${id}` } });
+      return;
+    }
+
+    setIsSubmittingRating(true);
+    try {
+      await reviewService.createReview({
+        property: property.id,
+        overall_rating: rating,
+        comment: `Rated ${rating} stars`
+      });
+      
+      setUserRating(rating);
+      toast.success('Thank you for rating this property!');
+      
+      // Refresh reviews to update average
+      const data = await reviewService.getReviews(id);
+      setReviews(data.results || data);
+      
+      // Update property rating
+      const updatedProperty = await propertyService.getProperty(id);
+      setProperty(updatedProperty);
+    } catch (error) {
+      console.error('Error submitting rating:', error);
+      toast.error(error.response?.data?.message || 'Failed to submit rating. Please try again.');
+    } finally {
+      setIsSubmittingRating(false);
+    }
+  };
+
   const today = new Date().toISOString().split('T')[0];
 
   const getPropertyTypeIcon = (type) => {
@@ -443,6 +499,50 @@ const PropertyPublicView = () => {
               <div className="flex items-center mt-2">
                 {getPropertyTypeIcon(property.property_type)}
                 <span className="capitalize">{property.property_type}</span>
+              </div>
+              
+              {/* Star Rating Section */}
+              <div className="mt-4">
+                <div className="flex items-center gap-4">
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-medium text-gray-700">Property Rating:</span>
+                    <StarRating 
+                      rating={parseFloat(property.rating) || 0}
+                      readOnly={true}
+                      size="md"
+                      showCount={true}
+                      count={reviews.length}
+                    />
+                    {property.rating > 0 && (
+                      <span className="text-sm font-semibold text-primary-600">
+                        {parseFloat(property.rating).toFixed(1)}
+                      </span>
+                    )}
+                  </div>
+                </div>
+                
+                {/* User Rating */}
+                {isAuthenticated && (
+                  <div className="mt-3 p-3 bg-gray-50 rounded-lg">
+                    <div className="flex items-center gap-3">
+                      <span className="text-sm font-medium text-gray-700">
+                        {userRating > 0 ? 'Your Rating:' : 'Rate this property:'}
+                      </span>
+                      <StarRating 
+                        rating={userRating}
+                        onRatingChange={handleRatingSubmit}
+                        readOnly={userRating > 0 || isSubmittingRating}
+                        size="sm"
+                      />
+                      {isSubmittingRating && (
+                        <Loader2 className="w-4 h-4 animate-spin text-primary-600" />
+                      )}
+                      {userRating > 0 && (
+                        <span className="text-xs text-green-600 font-medium">Rated</span>
+                      )}
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
             <div className="text-right">
