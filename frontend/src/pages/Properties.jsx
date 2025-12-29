@@ -748,12 +748,6 @@ const Properties = () => {
                 </div>
                 <div className="text-sm text-gray-600">Furnished</div>
               </Card>
-              <Card className="p-4 text-center">
-                <div className="text-2xl font-bold text-amber-600">
-                  ${properties.length > 0 ? Math.round(properties.reduce((sum, p) => sum + p.rent_price, 0) / properties.length) : 0}
-                </div>
-                <div className="text-sm text-gray-600">Avg. Price</div>
-              </Card>
             </div>
           )}
         </div>
