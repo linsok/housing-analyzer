@@ -1,4 +1,15 @@
 import api from './api';
+import axios from 'axios';
+
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
+
+// Create a separate axios instance for public endpoints (no auth required)
+const publicApi = axios.create({
+  baseURL: API_URL,
+  headers: {
+    'Content-Type': 'application/json',
+  },
+});
 
 export const authService = {
   async login(email, password) {
@@ -56,9 +67,34 @@ export const authService = {
     return response.data;
   },
 
+  async getProfile() {
+    const response = await api.get('/auth/users/profile/');
+    return response.data;
+  },
+
   async uploadVerification(formData) {
     const response = await api.post('/auth/users/upload_verification/', formData, {
       headers: { 'Content-Type': 'multipart/form-data' },
+    });
+    return response.data;
+  },
+
+  async forgotPassword(email) {
+    const response = await publicApi.post('/auth/forgot_password/', { email });
+    return response.data;
+  },
+
+  async verifyOTP(email, otpCode) {
+    const response = await publicApi.post('/auth/verify_otp/', { email, otp_code: otpCode });
+    return response.data;
+  },
+
+  async resetPasswordWithOTP(email, otpCode, newPassword, confirmPassword) {
+    const response = await publicApi.post('/auth/reset_password/', {
+      email,
+      otp_code: otpCode,
+      new_password: newPassword,
+      confirm_password: confirmPassword,
     });
     return response.data;
   },

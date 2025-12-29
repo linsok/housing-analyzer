@@ -87,9 +87,11 @@ DATABASES = {
         'HOST': 'localhost',        # Database host
         'PORT': '3306',             # MySQL port (default is 3306)
         'OPTIONS': {
-            'init_command': "SET sql_mode='STRICT_TRANS_TABLES'",
+            'init_command': "SET sql_mode='STRICT_TRANS_TABLES', time_zone='+07:00'",
             'charset': 'utf8mb4',
         },
+        'TIME_ZONE': 'Asia/Phnom_Penh',
+        'USE_TZ': True,
         'TEST': {
             'CHARSET': 'utf8mb4',
             'COLLATION': 'utf8mb4_unicode_ci',
@@ -164,6 +166,7 @@ AUTH_USER_MODEL = 'users.User'
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
         'rest_framework_simplejwt.authentication.JWTAuthentication',
+        'rest_framework.authentication.SessionAuthentication',
     ),
     'DEFAULT_PERMISSION_CLASSES': (
         'rest_framework.permissions.IsAuthenticated',
