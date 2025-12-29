@@ -10,6 +10,7 @@ import { bookingService } from '../services/bookingService';
 import { useAuthStore } from '../store/useAuthStore';
 import Button from '../components/ui/Button';
 import Loading from '../components/ui/Loading';
+import ImageViewer from '../components/ImageViewer';
 import { toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
@@ -21,6 +22,7 @@ const PropertyPublicView = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const [showImageViewer, setShowImageViewer] = useState(false);
   const [showContactModal, setShowContactModal] = useState(false);
   const [showBookingModal, setShowBookingModal] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -279,43 +281,155 @@ const PropertyPublicView = () => {
     }
   };
 
+  // Prepare images for gallery
+  const imageSources = [];
+  if (property?.images && property.images.length > 0) {
+    // Add primary image first
+    const primaryImage = property.images.find(img => img.is_primary);
+    if (primaryImage) {
+      imageSources.push(primaryImage.image);
+    }
+    // Add other images
+    property.images.forEach(img => {
+      if (!img.is_primary && img.image) {
+        imageSources.push(img.image);
+      }
+    });
+  }
+
   if (loading) return <Loading />;
   if (error) return <div className="container mx-auto px-4 py-8 text-red-500">{error}</div>;
   if (!property) return <div className="container mx-auto px-4 py-8">Property not found</div>;
 
   return (
     <div className="container mx-auto px-4 py-8">
-      <div className="bg-white rounded-lg shadow-md overflow-hidden">
-        {/* Image Gallery */}
+      {/* IMAGE GALLERY - AIRBNB STYLE HERO + GRID */}
+      <div className="bg-white rounded-lg shadow-md overflow-hidden mb-6">
         <div className="relative">
-          {property.images && property.images.length > 0 ? (
-            <div className="relative h-96 overflow-hidden">
-              <img
-                src={property.images[currentImageIndex].image}
-                alt={property.title}
-                className="w-full h-full object-cover"
-              />
+          {imageSources.length > 0 ? (
+            <div className="grid grid-cols-4 grid-rows-2 gap-2 rounded-2xl overflow-hidden h-[600px]">
+              {/* Hero Image - Takes 2x2 space */}
+              <div 
+                className="col-span-2 row-span-2 relative group cursor-pointer"
+                onClick={() => {
+                  setCurrentImageIndex(0);
+                  setShowImageViewer(true);
+                }}
+              >
+                <img
+                  src={imageSources[0]}
+                  alt={property.title}
+                  className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                />
+                <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-10 transition-all duration-300 flex items-center justify-center">
+                  <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                    <div className="bg-white rounded-full p-4 shadow-2xl transform group-hover:scale-110 transition-transform">
+                      <svg className="w-6 h-6 text-gray-800" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7" />
+                      </svg>
+                    </div>
+                  </div>
+                </div>
+                {imageSources.length > 1 && (
+                  <div className="absolute top-4 right-4 bg-white/95 backdrop-blur-sm text-gray-800 px-3 py-2 rounded-full text-sm font-medium shadow-lg">
+                    +{imageSources.length - 1} photos
+                  </div>
+                )}
+              </div>
+              
+              {/* Supporting Images */}
+              {imageSources.slice(1, 5).map((img, i) => (
+                <div
+                  key={i + 1}
+                  className="relative group cursor-pointer overflow-hidden"
+                  onClick={() => {
+                    setCurrentImageIndex(i + 1);
+                    setShowImageViewer(true);
+                  }}
+                >
+                  <img
+                    src={img}
+                    alt={`${property.title} - Image ${i + 2}`}
+                    className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                  />
+                  <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-all duration-300 flex items-center justify-center">
+                    <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                      <div className="bg-white rounded-full p-2 shadow-lg">
+                        <svg className="w-4 h-4 text-gray-800" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7" />
+                        </svg>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+              
+              {/* More Photos Overlay */}
+              {imageSources.length > 5 && (
+                <div 
+                  className="relative group cursor-pointer overflow-hidden bg-gray-200"
+                  onClick={() => {
+                    setCurrentImageIndex(0);
+                    setShowImageViewer(true);
+                  }}
+                >
+                  <div className="w-full h-full flex items-center justify-center">
+                    <div className="text-center">
+                      <div className="text-4xl font-bold text-gray-700 mb-2">+{imageSources.length - 5}</div>
+                      <div className="text-sm text-gray-600 font-medium">More photos</div>
+                    </div>
+                  </div>
+                  <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-30 transition-all duration-300 flex items-center justify-center">
+                    <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                      <div className="bg-white rounded-full p-3 shadow-lg">
+                        <svg className="w-5 h-5 text-gray-800" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                        </svg>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           ) : (
-            <div className="h-96 bg-gray-200 flex items-center justify-center">
+            <div className="h-96 bg-gray-200 flex items-center justify-center rounded-xl">
               <span className="text-gray-400">No images available</span>
             </div>
           )}
-          
-          {/* Image Navigation */}
-          {property.images && property.images.length > 1 && (
-            <div className="absolute bottom-4 left-0 right-0 flex justify-center space-x-2">
-              {property.images.map((_, index) => (
-                <button
-                  key={index}
-                  onClick={() => setCurrentImageIndex(index)}
-                  className={`w-3 h-3 rounded-full ${currentImageIndex === index ? 'bg-white' : 'bg-white/50'}`}
-                  aria-label={`View image ${index + 1}`}
-                />
-              ))}
-            </div>
-          )}
         </div>
+
+        {/* View All Photos Button */}
+        {imageSources.length > 0 && (
+          <div className="p-6 pt-0">
+            <button
+              onClick={() => {
+                setCurrentImageIndex(0);
+                setShowImageViewer(true);
+              }}
+              className="inline-flex items-center px-8 py-4 bg-white border-2 border-gray-300 text-gray-800 rounded-lg hover:border-gray-400 hover:bg-gray-50 transition-all duration-200 shadow-sm hover:shadow-md font-medium"
+            >
+              <svg className="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+              </svg>
+              View all {imageSources.length} photos
+            </button>
+          </div>
+        )}
+
+        {/* IMAGE VIEWER */}
+        {showImageViewer && (
+          <ImageViewer
+            isOpen
+            images={imageSources}
+            currentIndex={currentImageIndex}
+            onClose={() => setShowImageViewer(false)}
+            onImageChange={setCurrentImageIndex}
+          />
+        )}
+      </div>
+
+      {/* PROPERTY DETAILS */}
+      <div className="bg-white rounded-lg shadow-md overflow-hidden">
 
         {/* Property Details */}
         <div className="p-6">
