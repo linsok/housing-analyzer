@@ -229,25 +229,18 @@ const PropertyPublicView = () => {
       }
       
       // Schedule the viewing
-      await bookingService.scheduleViewing(property.id, {
+      const response = await bookingService.scheduleViewing(property.id, {
         visit_time: visitTime,
         notes: formData.message || 'I would like to book a viewing for this property.',
         contact_info: {
-          name: formData.name || '',
-          email: formData.email || '',
+          name: formData.name || user?.full_name || '',
+          email: formData.email || user?.email || '',
           phone: formData.phone || ''
         }
       });
       
-      // Send confirmation email (if your backend supports it)
-      await bookingService.sendMessage({
-        property: property.id,
-        visit_time: visitTime,
-        message: formData.message || 'Viewing request',
-        type: 'viewing_request'
-      });
-      
-      toast.success('Viewing booked successfully! The owner will contact you soon to confirm.');
+      // Show success message from backend response
+      toast.success(response.message || 'Viewing booked successfully! The owner will contact you soon to confirm.');
       setShowBookingModal(false);
       setFormData(prev => ({
         ...prev,
@@ -257,7 +250,7 @@ const PropertyPublicView = () => {
       }));
     } catch (error) {
       console.error('Error booking viewing:', error);
-      const errorMessage = error.response?.data?.message || 'Failed to book viewing. Please try again.';
+      const errorMessage = error.response?.data?.error || error.message || 'Failed to book viewing. Please try again.';
       toast.error(errorMessage);
       
       // If the error is about time slot, refresh available slots
@@ -339,8 +332,7 @@ const PropertyPublicView = () => {
               </div>
             </div>
             <div className="text-right">
-              <div className="text-3xl font-bold text-primary-600">${property.price_per_month}/month</div>
-              <div className="text-sm text-gray-500">${(property.price_per_month / 30).toFixed(2)}/night</div>
+              <div className="text-3xl font-bold text-primary-600">${formatPrice(property.rent_price)}/month</div>
             </div>
           </div>
 

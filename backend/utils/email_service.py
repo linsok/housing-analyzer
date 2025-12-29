@@ -46,6 +46,7 @@ class EmailService:
                 'start_date': booking.start_date,
                 'total_amount': booking.total_amount,
                 'deposit_amount': booking.deposit_amount,
+                'owner_phone': booking.property.owner.phone,
             }
             
             # Render email template
@@ -74,9 +75,13 @@ Payment Summary:
 - Deposit Amount: ${booking.deposit_amount}
 - Total Amount: ${booking.total_amount}
 
+Property Owner Contact:
+- Name: {owner_name}
+- Phone: {booking.property.owner.phone if booking.property.owner.phone else 'Not provided'}
+
 The property owner, {owner_name}, has marked your booking as completed. This means your rental arrangement has been successfully finalized.
 
-If you have any questions or need assistance, please don't hesitate to contact our support team.
+If you have any questions or need assistance, please feel free to contact the property owner directly using the contact information above.
 
 Thank you for choosing Housing Analyzer for your rental needs!
 
@@ -126,6 +131,95 @@ group05support@housinganalyzer.com
             return False
     
     @staticmethod
+    def send_visit_completion_notification(booking):
+        """
+        Send email notification to renter when property visit is marked as completed
+        
+        Args:
+            booking: Booking instance (visit type) that was completed
+            
+        Returns:
+            bool: True if email was sent successfully, False otherwise
+        """
+        logger.info(f"Starting to send visit completion notification for booking {booking.id}")
+        try:
+            if not booking.renter or not booking.renter.email:
+                logger.error(f"Cannot send email: No renter or renter email for booking {booking.id}")
+                return False
+                
+            renter_email = booking.renter.email
+            owner_name = booking.property.owner.full_name or booking.property.owner.username
+            property_title = booking.property.title
+            property_address = booking.property.address
+            visit_time = booking.visit_time
+            
+            logger.debug(f"Preparing visit completion email for booking {booking.id} to {renter_email}")
+            logger.debug(f"Property: {property_title}, Owner: {owner_name}, Visit Time: {visit_time}")
+            
+            # Email context
+            context = {
+                'renter_name': booking.renter.full_name or booking.renter.username,
+                'owner_name': owner_name,
+                'property_title': property_title,
+                'property_address': property_address,
+                'visit_time': visit_time,
+                'booking_id': booking.id,
+                'owner_phone': booking.property.owner.phone,
+            }
+            
+            # Render email template
+            subject = f"Property Visit Completed - {property_title}"
+            
+            # HTML email body (skip template if not found)
+            try:
+                html_message = render_to_string('emails/visit_completion.html', context)
+            except:
+                html_message = None  # Fallback to plain text if template not found
+            
+            # Plain text email body (fallback)
+            text_message = f"""
+Dear {context['renter_name']},
+
+We hope you enjoyed your property visit!
+
+Visit Details:
+- Property: {property_title}
+- Address: {property_address}
+- Booking ID: {booking.id}
+- Visit Time: {visit_time.strftime('%B %d, %Y at %I:%M %p')}
+
+Property Owner Contact:
+- Name: {owner_name}
+- Phone: {booking.property.owner.phone if booking.property.owner.phone else 'Not provided'}
+
+The property owner, {owner_name}, has marked your visit as completed. We hope you found the property suitable for your needs.
+
+If you're interested in renting this property or have any questions about the visit, please feel free to contact the property owner directly using the contact information above.
+
+Thank you for choosing Housing Analyzer for your property search!
+
+Best regards,
+Housing Analyzer Team
+"""
+            
+            # Send email
+            send_mail(
+                subject=subject,
+                message=text_message,
+                from_email=settings.DEFAULT_FROM_EMAIL,
+                recipient_list=[renter_email],
+                html_message=html_message,
+                fail_silently=False,
+            )
+            
+            logger.info(f"Visit completion notification sent successfully to {renter_email}")
+            return True
+            
+        except Exception as e:
+            logger.error(f"Failed to send visit completion email for booking {booking.id}: {str(e)}")
+            return False
+    
+    @staticmethod
     def send_booking_confirmation_notification(booking):
         """
         Send email notification to renter when booking is confirmed
@@ -152,6 +246,7 @@ group05support@housinganalyzer.com
                 'start_date': booking.start_date,
                 'total_amount': booking.total_amount,
                 'deposit_amount': booking.deposit_amount,
+                'owner_phone': booking.property.owner.phone,
             }
             
             # Render email template
@@ -179,9 +274,13 @@ Payment Summary:
 - Deposit Amount: ${booking.deposit_amount}
 - Total Amount: ${booking.total_amount}
 
+Property Owner Contact:
+- Name: {owner_name}
+- Phone: {booking.property.owner.phone if booking.property.owner.phone else 'Not provided'}
+
 The property owner, {owner_name}, has confirmed your booking. Please prepare for your move-in on the scheduled date.
 
-If you have any questions or need assistance, please don't hesitate to contact our support team.
+If you have any questions or need assistance, please feel free to contact the property owner directly using the contact information above.
 
 Thank you for choosing Housing Analyzer for your rental needs!
 

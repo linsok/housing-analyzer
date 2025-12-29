@@ -20,7 +20,6 @@ const OwnerBookings = () => {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
-  const [typeFilter, setTypeFilter] = useState('all');
   const [dateFilter, setDateFilter] = useState('');
   const [selectedBooking, setSelectedBooking] = useState(null);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
@@ -34,7 +33,7 @@ const OwnerBookings = () => {
 
   useEffect(() => {
     filterBookings();
-  }, [bookings, searchTerm, statusFilter, typeFilter, dateFilter]);
+  }, [bookings, searchTerm, statusFilter, dateFilter]);
 
   useEffect(() => {
     console.log('Modal state:', { showDetailsModal, selectedBooking });
@@ -42,7 +41,7 @@ const OwnerBookings = () => {
 
   const loadBookings = async () => {
     try {
-      const data = await bookingService.getBookings();
+      const data = await bookingService.getBookings({ booking_type: 'rental' });
       setBookings(data.results || data);
     } catch (error) {
       console.error('Error loading bookings:', error);
@@ -68,11 +67,6 @@ const OwnerBookings = () => {
     // Filter by status
     if (statusFilter !== 'all') {
       filtered = filtered.filter(booking => booking.status === statusFilter);
-    }
-
-    // Filter by type
-    if (typeFilter !== 'all') {
-      filtered = filtered.filter(booking => booking.booking_type === typeFilter);
     }
 
     // Filter by date
@@ -263,14 +257,14 @@ const OwnerBookings = () => {
             <div className="text-gray-600 text-sm">Confirmed</div>
           </Card>
           <Card className="text-center">
-            <Home className="w-8 h-8 text-blue-500 mx-auto mb-2" />
-            <div className="text-2xl font-bold">{bookings.filter(b => b.booking_type === 'rental').length}</div>
-            <div className="text-gray-600 text-sm">Room Rentals</div>
+            <DollarSign className="w-8 h-8 text-blue-500 mx-auto mb-2" />
+            <div className="text-2xl font-bold">{bookings.filter(b => b.status === 'completed').length}</div>
+            <div className="text-gray-600 text-sm">Completed</div>
           </Card>
           <Card className="text-center">
-            <Calendar className="w-8 h-8 text-purple-500 mx-auto mb-2" />
-            <div className="text-2xl font-bold">{bookings.filter(b => b.booking_type === 'visit').length}</div>
-            <div className="text-gray-600 text-sm">Property Visits</div>
+            <Home className="w-8 h-8 text-purple-500 mx-auto mb-2" />
+            <div className="text-2xl font-bold">{bookings.length}</div>
+            <div className="text-gray-600 text-sm">Total Rentals</div>
           </Card>
         </div>
 
@@ -303,16 +297,6 @@ const OwnerBookings = () => {
               <option value="rejected">Rejected</option>
             </select>
 
-            <select
-              value={typeFilter}
-              onChange={(e) => setTypeFilter(e.target.value)}
-              className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-            >
-              <option value="all">All Types</option>
-              <option value="rental">Room Rental</option>
-              <option value="visit">Property Visit</option>
-            </select>
-
             <input
               type="date"
               value={dateFilter}
@@ -337,7 +321,7 @@ const OwnerBookings = () => {
               <Calendar className="w-16 h-16 mx-auto mb-4 text-gray-400" />
               <p className="text-lg font-medium">No bookings found</p>
               <p className="text-sm mt-2">
-                {searchTerm || statusFilter !== 'all' || typeFilter !== 'all' || dateFilter
+                {searchTerm || statusFilter !== 'all' || dateFilter
                   ? 'Try adjusting your filters' 
                   : 'When you receive booking requests, they will appear here'
                 }
@@ -452,13 +436,6 @@ const OwnerBookings = () => {
                       >
                         <Eye className="w-4 h-4 mr-1" />
                         View Details
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                      >
-                        <MessageCircle className="w-4 h-4 mr-1" />
-                        Contact
                       </Button>
                     </div>
                     
@@ -593,6 +570,10 @@ const OwnerBookings = () => {
                             </td>
                           </tr>
                           <tr className="hover:bg-gray-50">
+                            <td className="px-6 py-3 text-sm font-medium text-gray-900">Monthly Rent</td>
+                            <td className="px-6 py-3 text-sm text-gray-700">{formatCurrency(selectedBooking.property_details?.rent_price || selectedBooking.monthly_rent)}</td>
+                          </tr>
+                          <tr className="hover:bg-gray-50">
                             <td className="px-6 py-3 text-sm font-medium text-gray-900">Deposit</td>
                             <td className="px-6 py-3 text-sm text-gray-700">
                               {selectedBooking.deposit_amount ? formatCurrency(selectedBooking.deposit_amount) : 'N/A'}
@@ -672,7 +653,23 @@ const OwnerBookings = () => {
                         Payment Information
                       </h3>
                       <div className="bg-gray-50 rounded-lg p-4 space-y-3">
-                        <div><strong>Payment Method:</strong> ABA Mobile (QR Code)</div>
+                        <div><strong>Payment Method:</strong> Bakong KHQR</div>
+                        <div><strong>Payment Status:</strong> 
+                          <span className={`ml-2 px-2 py-1 text-xs font-medium rounded-full ${
+                            selectedBooking.status === 'confirmed' || selectedBooking.status === 'completed'
+                              ? 'bg-green-100 text-green-800'
+                              : selectedBooking.status === 'pending_review'
+                              ? 'bg-yellow-100 text-yellow-800'
+                              : 'bg-gray-100 text-gray-800'
+                          }`}>
+                            {selectedBooking.status === 'confirmed' || selectedBooking.status === 'completed' 
+                              ? 'Paid' 
+                              : selectedBooking.status === 'pending_review'
+                              ? 'Pending Review'
+                              : selectedBooking.status
+                            }
+                          </span>
+                        </div>
                         
                         {/* QR Code Display */}
                         {selectedBooking.property_details?.images?.some(img => img.is_qr_code) && (

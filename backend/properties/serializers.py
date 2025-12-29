@@ -1,4 +1,5 @@
 from rest_framework import serializers
+import json
 from .models import Property, PropertyImage, PropertyDocument, Favorite, PropertyView, Report
 from users.serializers import UserSerializer
 
@@ -19,16 +20,17 @@ class PropertyListSerializer(serializers.ModelSerializer):
     """Serializer for property list view"""
     owner_name = serializers.CharField(source='owner.full_name', read_only=True)
     owner_verified = serializers.BooleanField(source='owner.is_verified', read_only=True)
+    owner_phone = serializers.CharField(source='owner.phone', read_only=True)
     primary_image = serializers.SerializerMethodField()
     is_favorited = serializers.SerializerMethodField()
     
     class Meta:
         model = Property
         fields = [
-            'id', 'title', 'property_type', 'city', 'area', 'rent_price', 'currency',
+            'id', 'title', 'property_type', 'address', 'city', 'area', 'rent_price', 'currency',
             'bedrooms', 'bathrooms', 'area_sqm', 'is_furnished', 'status',
             'verification_status', 'rating', 'view_count', 'primary_image',
-            'owner_name', 'owner_verified', 'is_favorited', 'created_at'
+            'owner_name', 'owner_verified', 'owner_phone', 'is_favorited', 'created_at'
         ]
     
     def get_primary_image(self, obj):
@@ -79,6 +81,23 @@ class PropertyDetailSerializer(serializers.ModelSerializer):
 
 class PropertyCreateUpdateSerializer(serializers.ModelSerializer):
     """Serializer for creating/updating properties"""
+    
+    def to_internal_value(self, data):
+        # Handle facilities field that might come as JSON string
+        print(f"Received data: {data}")
+        if 'facilities' in data:
+            print(f"Facilities field type: {type(data['facilities'])}")
+            print(f"Facilities field value: {data['facilities']}")
+            
+        if 'facilities' in data and isinstance(data['facilities'], str):
+            try:
+                data['facilities'] = json.loads(data['facilities'])
+                print(f"Parsed facilities: {data['facilities']}")
+            except (json.JSONDecodeError, ValueError) as e:
+                print(f"Error parsing facilities: {e}")
+                data['facilities'] = []
+        
+        return super().to_internal_value(data)
     
     class Meta:
         model = Property

@@ -154,7 +154,7 @@ def owner_analytics(request):
     # Monthly guest/booking statistics (last 12 months)
     monthly_guests = []
     for i in range(12):
-        month_start = (datetime.now() - timedelta(days=30*i)).replace(day=1)
+        month_start = (django_timezone.now() - timedelta(days=30*i)).replace(day=1)
         month_end = (month_start + timedelta(days=32)).replace(day=1) - timedelta(days=1)
         
         month_bookings = bookings.filter(
@@ -171,7 +171,7 @@ def owner_analytics(request):
     
     # Yearly guest statistics (last 3 years)
     yearly_guests = []
-    current_year = datetime.now().year
+    current_year = django_timezone.now().year
     for i in range(3):
         year = current_year - i
         year_bookings = bookings.filter(created_at__year=year)
@@ -205,7 +205,7 @@ def owner_analytics(request):
     # Views trend (last 30 days)
     views_trend = []
     for i in range(30):
-        date = datetime.now().date() - timedelta(days=29-i)
+        date = django_timezone.now().date() - timedelta(days=29-i)
         daily_views = PropertyView.objects.filter(
             property__owner=request.user,
             viewed_at__date=date
@@ -336,7 +336,7 @@ def admin_dashboard(request):
     confirmed_bookings = Booking.objects.filter(status='confirmed').count()
     
     # Recent activity (last 30 days)
-    thirty_days_ago = datetime.now() - timedelta(days=30)
+    thirty_days_ago = django_timezone.now() - timedelta(days=30)
     new_users = User.objects.filter(created_at__gte=thirty_days_ago).count()
     new_properties = Property.objects.filter(created_at__gte=thirty_days_ago).count()
     new_bookings = Booking.objects.filter(created_at__gte=thirty_days_ago).count()
@@ -349,7 +349,7 @@ def admin_dashboard(request):
     # User signups by day
     user_signups = []
     for i in range(30):
-        date = datetime.now().date() - timedelta(days=29-i)
+        date = django_timezone.now().date() - timedelta(days=29-i)
         count = User.objects.filter(created_at__date=date).count()
         user_signups.append({
             'date': date.strftime('%Y-%m-%d'),
@@ -359,7 +359,7 @@ def admin_dashboard(request):
     # User logins by day (using last_login field)
     user_logins = []
     for i in range(30):
-        date = datetime.now().date() - timedelta(days=29-i)
+        date = django_timezone.now().date() - timedelta(days=29-i)
         count = User.objects.filter(last_login__date=date).count()
         user_logins.append({
             'date': date.strftime('%Y-%m-%d'),
@@ -367,7 +367,7 @@ def admin_dashboard(request):
         })
     
     # Active users (logged in within last 7 days)
-    seven_days_ago = datetime.now() - timedelta(days=7)
+    seven_days_ago = django_timezone.now() - timedelta(days=7)
     active_users = User.objects.filter(last_login__gte=seven_days_ago).count()
     
     # Active users by role
@@ -380,7 +380,7 @@ def admin_dashboard(request):
     # User growth over last 6 months
     user_growth = []
     for i in range(6):
-        month_start = (datetime.now() - timedelta(days=30*i)).replace(day=1)
+        month_start = (django_timezone.now() - timedelta(days=30*i)).replace(day=1)
         month_end = (month_start + timedelta(days=32)).replace(day=1) - timedelta(days=1)
         count = User.objects.filter(created_at__gte=month_start, created_at__lte=month_end).count()
         user_growth.insert(0, {
@@ -436,7 +436,7 @@ def market_trends_comprehensive(request):
     properties = Property.objects.filter(verification_status='verified')
     
     # 1. Price trends over time (last 6 months)
-    six_months_ago = datetime.now() - timedelta(days=180)
+    six_months_ago = django_timezone.now() - timedelta(days=180)
     price_trends = properties.filter(
         created_at__gte=six_months_ago
     ).annotate(
@@ -566,7 +566,7 @@ def market_trends_comprehensive(request):
         from django.contrib.auth import get_user_model
         User = get_user_model()
         
-        thirty_days_ago = datetime.now() - timedelta(days=30)
+        thirty_days_ago = django_timezone.now() - timedelta(days=30)
         
         role_specific_data = {
             'platform_stats': {
@@ -683,16 +683,22 @@ def renter_analytics(request):
             ).order_by('year', 'month_num')
             
             monthly_spending_data = []
+            # Process each item safely
             for item in monthly_spending:
-                if item['month_num'] is not None and item['year'] is not None:
-                    month_names = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
-                    month_num = int(item['month_num'])
-                    month_name = month_names[month_num - 1]
-                    monthly_spending_data.append({
-                        'month': f"{month_name} {item['year']}",
-                        'amount': float(item['amount'] or 0),
-                        'bookings': item['count']
-                    })
+                try:
+                    if item['month_num'] is not None and item['year'] is not None:
+                        month_names = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+                        month_num = int(item['month_num'])
+                        if 1 <= month_num <= 12:
+                            month_name = month_names[month_num - 1]
+                            monthly_spending_data.append({
+                                'month': f"{month_name} {item['year']}",
+                                'amount': float(item['amount'] or 0),
+                                'bookings': item['count']
+                            })
+                except (ValueError, TypeError) as e:
+                    logger.warning(f"Skipping invalid monthly spending item: {item}, error: {e}")
+                    continue
         except Exception as e:
             logger.error(f"Error calculating monthly spending: {str(e)}", exc_info=True)
             monthly_spending_data = []
@@ -711,13 +717,18 @@ def renter_analytics(request):
             ).order_by('year')
             
             yearly_spending_data = []
+            # Process each item safely
             for item in yearly_spending:
-                if item['year'] is not None:
-                    yearly_spending_data.append({
-                        'year': int(item['year']),
-                        'amount': float(item['amount'] or 0),
-                        'bookings': item['count']
-                    })
+                try:
+                    if item['year'] is not None:
+                        yearly_spending_data.append({
+                            'year': int(item['year']),
+                            'amount': float(item['amount'] or 0),
+                            'bookings': item['count']
+                        })
+                except (ValueError, TypeError) as e:
+                    logger.warning(f"Skipping invalid yearly spending item: {item}, error: {e}")
+                    continue
         except Exception as e:
             logger.error(f"Error calculating yearly spending: {str(e)}", exc_info=True)
             yearly_spending_data = []

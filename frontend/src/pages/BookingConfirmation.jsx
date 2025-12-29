@@ -80,7 +80,7 @@ const BookingConfirmation = () => {
       case 'confirmed':
         return {
           title: 'Booking Confirmed!',
-          message: 'Your payment has been verified and your booking is confirmed. The property owner will contact you with further details.',
+          message: <span>Your payment has been successfully verified and your booking is confirmed. Please review your email inbox and kindly wait until the status check is <strong>completed check</strong>. The property owner will contact you with further details.</span>,
           color: 'green',
           icon: <CheckCircle className="w-8 h-8" />
         };
@@ -240,6 +240,10 @@ const BookingConfirmation = () => {
                   </div>
                   <div className="flex items-start gap-2">
                     <div className="w-1.5 h-1.5 rounded-full bg-primary-500 mt-1.5"></div>
+                    <p>Kindly check your email inbox.</p>
+                  </div>
+                  <div className="flex items-start gap-2">
+                    <div className="w-1.5 h-1.5 rounded-full bg-primary-500 mt-1.5"></div>
                     <p>Booking confirmation or rejection notification</p>
                   </div>
                 </div>
@@ -258,7 +262,7 @@ const BookingConfirmation = () => {
           </Button>
           
           <Button
-            onClick={() => navigate('/renter/dashboard')}
+            onClick={() => navigate('/renter/room-bookings')}
           >
             View My Bookings
             <ArrowRight className="w-4 h-4 ml-2" />

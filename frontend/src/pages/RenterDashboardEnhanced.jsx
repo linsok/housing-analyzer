@@ -61,6 +61,22 @@ const RenterDashboardEnhanced = () => {
           <p className="text-gray-600 mt-2">Track your rentals, spending, and payment schedules</p>
         </div>
 
+        {/* Navigation Buttons */}
+        <div className="flex space-x-4 mb-8">
+          <Link to="/renter/room-bookings">
+            <Button variant="outline" className="flex items-center">
+              <Home className="w-5 h-5 mr-2" />
+              My Room Bookings
+            </Button>
+          </Link>
+          <Link to="/renter/visit-bookings">
+            <Button variant="outline" className="flex items-center">
+              <Calendar className="w-5 h-5 mr-2" />
+              My Visit Bookings
+            </Button>
+          </Link>
+        </div>
+
         {/* Payment Reminders - Urgent Section */}
         {analytics.payment_reminders && analytics.payment_reminders.length > 0 && (
           <div className="mb-8">

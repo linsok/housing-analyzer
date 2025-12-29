@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>OTP Password Reset Test</title>
+</head>
+<body>
+    <h1>OTP Password Reset Test</h1>
+    
+    <div id="results"></div>
+    
+    <script>
+        const resultsDiv = document.getElementById('results');
+        
+        function log(message) {
+            console.log(message);
+            resultsDiv.innerHTML += '<p>' + message + '</p>';
+        }
+        
+        // Test forgot password
+        async function testForgotPassword() {
+            log('Testing forgot password endpoint...');
+            
+            try {
+                const response = await fetch('http://localhost:8000/api/auth/users/forgot_password/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ email: 'mana123@gmail.com' }),
+                });
+                
+                log('Status: ' + response.status);
+                const data = await response.json();
+                log('Response: ' + JSON.stringify(data));
+                
+                if (response.ok) {
+                    log('✅ Forgot password endpoint works!');
+                } else {
+                    log('❌ Forgot password endpoint failed: ' + data.detail || data.error);
+                }
+            } catch (error) {
+                log('❌ Network error: ' + error.message);
+            }
+        }
+        
+        // Test OTP verification
+        async function testOTPVerification() {
+            log('Testing OTP verification...');
+            
+            try {
+                const response = await fetch('http://localhost:8000/api/auth/users/verify_otp/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ 
+                        email: 'mana123@gmail.com',
+                        otp_code: '123456' // This will fail but test the endpoint
+                    }),
+                });
+                
+                log('Status: ' + response.status);
+                const data = await response.json();
+                log('Response: ' + JSON.stringify(data));
+                
+                if (response.status === 400) {
+                    log('✅ OTP verification endpoint exists (expected failure for invalid OTP)');
+                } else {
+                    log('❌ Unexpected response from OTP verification');
+                }
+            } catch (error) {
+                log('❌ Network error: ' + error.message);
+            }
+        }
+        
+        // Run tests
+        testForgotPassword().then(() => {
+            setTimeout(testOTPVerification, 1000);
+        });
+    </script>
+</body>
+</html>

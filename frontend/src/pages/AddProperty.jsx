@@ -244,7 +244,7 @@ facilities: property.facilities ?
         is_furnished: Boolean(formData.is_furnished),
         pets_allowed: Boolean(formData.pets_allowed),
         smoking_allowed: Boolean(formData.smoking_allowed),
-        facilities: JSON.stringify(formData.facilities || []),
+        facilities: formData.facilities || [],
         rules: formData.rules || '',
         available_from: formData.available_from || null,
         status: 'available',
@@ -258,7 +258,12 @@ facilities: property.facilities ?
 
       // Add all fields to formDataToSend
       Object.entries(propertyData).forEach(([key, value]) => {
-        if (value !== null && value !== undefined) {
+        if (key === 'facilities' && Array.isArray(value)) {
+          // Handle facilities array as JSON string
+          const jsonString = JSON.stringify(value);
+          formDataToSend.append(key, jsonString);
+          console.log(`Adding facilities as JSON string: ${jsonString}`);
+        } else if (value !== null && value !== undefined && key !== 'facilities') {
           formDataToSend.append(key, value);
         }
       });
@@ -272,6 +277,10 @@ facilities: property.facilities ?
 
       // Log the data being sent (for debugging)
       console.log('Submitting property data:', Object.fromEntries(formDataToSend.entries()));
+      console.log('Facilities field:', formDataToSend.get('facilities'));
+      console.log('Description field:', formDataToSend.get('description'));
+      console.log('Address field:', formDataToSend.get('address'));
+      console.log('Original facilities array:', propertyData.facilities);
 
       // Submit the form
       let response;
