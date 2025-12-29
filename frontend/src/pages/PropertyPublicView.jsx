@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { 
   Star, Heart, MapPin, Bed, Bath, Ruler, Users, Home, 
   Building, Hotel, Castle, X, Calendar, Clock, MessageCircle, 
-  Phone, Send, Loader2, CreditCard, CalendarCheck, UserPlus
+  Phone, Send, Loader2, CreditCard, CalendarCheck, UserPlus, Mail
 } from 'lucide-react';
 import { propertyService } from '../services/propertyService';
 import { bookingService } from '../services/bookingService';
@@ -678,100 +678,58 @@ const PropertyPublicView = () => {
       </button>
       
       <h2 className="text-2xl font-bold mb-4">Contact Property Owner</h2>
-      <p className="text-gray-600 mb-6">Send a message to the property owner about this listing.</p>
+      <p className="text-gray-600 mb-6">Contact the property owner about this property by Phone Number or Email.</p>
       
-      <form onSubmit={handleSubmitContact} className="space-y-4">
-        <div>
-          <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1">
-            Your Name
-          </label>
-          <input
-            type="text"
-            id="name"
-            name="name"
-            value={formData.name}
-            onChange={handleInputChange}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500"
-            required
-          />
-        </div>
+      {/* Owner Contact Information */}
+      <div className="space-y-3 mb-6">
+        {property?.owner?.phone ? (
+          <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+            <div className="flex items-center gap-2">
+              <Phone className="w-4 h-4 text-gray-600" />
+              <span className="font-medium">Owner Phone:</span>
+              <span className="text-primary-600">{property.owner.phone}</span>
+            </div>
+            <Button 
+              size="sm" 
+              onClick={() => window.open(`tel:${property.owner.phone}`)}
+            >
+              Call
+            </Button>
+          </div>
+        ) : (
+          <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+            <div className="flex items-center gap-2">
+              <Phone className="w-4 h-4 text-gray-400" />
+              <span className="font-medium text-gray-500">Owner Phone:</span>
+              <span className="text-gray-400">Not available</span>
+            </div>
+          </div>
+        )}
         
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
+        {property?.owner?.email ? (
+          <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+            <div className="flex items-center gap-2">
+              <Mail className="w-4 h-4 text-gray-600" />
+              <span className="font-medium">Owner Email:</span>
+              <span className="text-primary-600 text-sm">{property.owner.email}</span>
+            </div>
+            <Button 
+              size="sm" 
+              onClick={() => window.open(`mailto:${property.owner.email}`)}
+            >
               Email
-            </label>
-            <input
-              type="email"
-              id="email"
-              name="email"
-              value={formData.email}
-              onChange={handleInputChange}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500"
-              required
-            />
+            </Button>
           </div>
-          
-          <div>
-            <label htmlFor="phone" className="block text-sm font-medium text-gray-700 mb-1">
-              Phone Number
-            </label>
-            <input
-              type="tel"
-              id="phone"
-              name="phone"
-              value={formData.phone}
-              onChange={handleInputChange}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500"
-              required
-            />
+        ) : (
+          <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+            <div className="flex items-center gap-2">
+              <Mail className="w-4 h-4 text-gray-400" />
+              <span className="font-medium text-gray-500">Owner Email:</span>
+              <span className="text-gray-400">Not available</span>
+            </div>
           </div>
-        </div>
-        
-        <div>
-          <label htmlFor="message" className="block text-sm font-medium text-gray-700 mb-1">
-            Message
-          </label>
-          <textarea
-            id="message"
-            name="message"
-            rows="4"
-            value={formData.message}
-            onChange={handleInputChange}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500"
-            placeholder="I'm interested in this property. Please provide more details."
-            required
-          />
-        </div>
-        
-        <div className="flex justify-end space-x-3 pt-2">
-          <button
-            type="button"
-            onClick={() => setShowContactModal(false)}
-            className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
-            disabled={isSubmitting}
-          >
-            Cancel
-          </button>
-          <button
-            type="submit"
-            className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 flex items-center"
-            disabled={isSubmitting}
-          >
-            {isSubmitting ? (
-              <>
-                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                Sending...
-              </>
-            ) : (
-              <>
-                <Send className="w-4 h-4 mr-2" />
-                Send Message
-              </>
-            )}
-          </button>
-        </div>
-      </form>
+        )}
+      </div>
     </div>
   </div>
 )}

@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import {
   MapPin, Bed, Bath, Square, Heart, CheckCircle,
   Wifi, Car, Wind, Dumbbell, Star, Calendar,
-  Phone, MessageCircle, Clock, Send, Loader2, Home
+  Phone, MessageCircle, Clock, Send, Loader2, Home, Mail
 } from 'lucide-react';
 import { toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
@@ -45,6 +45,13 @@ const PropertyDetail = () => {
 
   const [showContactModal, setShowContactModal] = useState(false);
   const [availableTimeSlots, setAvailableTimeSlots] = useState([]);
+  const [sendingMessage, setSendingMessage] = useState(false);
+  const [contactForm, setContactForm] = useState({
+    name: user?.full_name || '',
+    email: user?.email || '',
+    phone: user?.phone || '',
+    message: "I'm interested in this property. Please provide more details."
+  });
 
   /* ================= LOAD DATA ================= */
 
@@ -54,9 +61,22 @@ const PropertyDetail = () => {
     generateTimeSlots();
   }, [id]);
 
+  useEffect(() => {
+    if (user) {
+      setContactForm({
+        name: user.full_name || '',
+        email: user.email || '',
+        phone: user.phone || '',
+        message: "I'm interested in this property. Please provide more details."
+      });
+    }
+  }, [user]);
+
   const loadProperty = async () => {
     try {
       const data = await propertyService.getProperty(id);
+      console.log('Property data:', data); // Debug log
+      console.log('Owner data:', data.owner); // Debug log
       setProperty(data);
     } catch (err) {
       console.error(err);
@@ -180,6 +200,48 @@ const PropertyDetail = () => {
     }
 
     setShowContactModal(true);
+  };
+
+  const handleContactSubmit = async (e) => {
+    e.preventDefault();
+    
+    if (!isAuthenticated) {
+      navigate('/login');
+      return;
+    }
+
+    setSendingMessage(true);
+    const loadingToast = toast.loading('Sending message...');
+
+    try {
+      await bookingService.sendMessage({
+        property: property.id,
+        receiver: property.owner?.id,
+        content: `From: ${contactForm.name}\nEmail: ${contactForm.email}\nPhone: ${contactForm.phone}\n\nMessage: ${contactForm.message}`
+      });
+
+      toast.update(loadingToast, {
+        render: 'Message sent successfully!',
+        type: 'success',
+        isLoading: false,
+        autoClose: 4000,
+      });
+
+      setContactForm({
+        name: user?.full_name || '',
+        email: user?.email || '',
+        phone: user?.phone || '',
+        message: "I'm interested in this property. Please provide more details."
+      });
+    } catch (err) {
+      toast.update(loadingToast, {
+        render: err.message || 'Failed to send message',
+        type: 'error',
+        isLoading: false,
+      });
+    } finally {
+      setSendingMessage(false);
+    }
   };
 
   /* ================= IMAGES ================= */
@@ -338,6 +400,207 @@ const PropertyDetail = () => {
         <Calendar className="w-4 h-4 mr-2" />
         Book Now
       </Button>
+
+      {/* CONTACT PROPERTY OWNER SECTION */}
+      <Card className="mt-6">
+        <h2 className="text-xl font-semibold mb-4">Contact Property Owner</h2>
+        
+        {/* Debug Info */}
+        <div className="mb-4 p-2 bg-yellow-100 text-xs">
+          Debug: Property exists: {!!property} | Owner exists: {!!property?.owner} | 
+          Owner phone: {property?.owner?.phone || 'none'} | Owner email: {property?.owner?.email || 'none'}
+        </div>
+        
+        {/* Owner Info */}
+        <div className="flex items-center gap-3 mb-6">
+          <div className="w-12 h-12 bg-gray-200 rounded-full flex items-center justify-center">
+            {property.owner?.profile_picture ? (
+              <img
+                src={property.owner.profile_picture}
+                alt={property.owner.full_name}
+                className="w-full h-full rounded-full object-cover"
+              />
+            ) : (
+              <span className="text-lg font-semibold text-gray-600">
+                {property.owner?.full_name?.[0] || 'O'}
+              </span>
+            )}
+          </div>
+          <div>
+            <div className="font-semibold text-lg">{property.owner?.full_name || 'Property Owner'}</div>
+            <div className="text-sm text-gray-600">Property Owner</div>
+          </div>
+        </div>
+
+        {/* Contact Information Display */}
+        <div className="space-y-3 mb-6">
+          {property.owner?.phone && (
+            <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+              <div className="flex items-center gap-2">
+                <Phone className="w-4 h-4 text-gray-600" />
+                <span className="font-medium">Phone:</span>
+                <span className="text-primary-600">{property.owner.phone}</span>
+              </div>
+              <Button 
+                size="sm" 
+                onClick={() => window.open(`tel:${property.owner.phone}`)}
+              >
+                Call
+              </Button>
+            </div>
+          )}
+          
+          {property.owner?.email && (
+            <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+              <div className="flex items-center gap-2">
+                <Mail className="w-4 h-4 text-gray-600" />
+                <span className="font-medium">Email:</span>
+                <span className="text-primary-600 text-sm">{property.owner.email}</span>
+              </div>
+              <Button 
+                size="sm" 
+                onClick={() => window.open(`mailto:${property.owner.email}`)}
+              >
+                Email
+              </Button>
+            </div>
+          )}
+        </div>
+
+        {/* Contact Form */}
+        <div className="border-t pt-6">
+          <h3 className="font-medium mb-4 text-lg">Send a message to the property owner about this listing or contact by Phone Number and Email.</h3>
+          
+          {/* Owner Contact Information */}
+          <div className="space-y-3 mb-6">
+            {property.owner?.phone ? (
+              <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                <div className="flex items-center gap-2">
+                  <Phone className="w-4 h-4 text-gray-600" />
+                  <span className="font-medium">Owner Phone:</span>
+                  <span className="text-primary-600">{property.owner.phone}</span>
+                </div>
+                <Button 
+                  size="sm" 
+                  onClick={() => window.open(`tel:${property.owner.phone}`)}
+                >
+                  Call
+                </Button>
+              </div>
+            ) : (
+              <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                <div className="flex items-center gap-2">
+                  <Phone className="w-4 h-4 text-gray-400" />
+                  <span className="font-medium text-gray-500">Owner Phone:</span>
+                  <span className="text-gray-400">Not available</span>
+                </div>
+              </div>
+            )}
+            
+            {property.owner?.email ? (
+              <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                <div className="flex items-center gap-2">
+                  <Mail className="w-4 h-4 text-gray-600" />
+                  <span className="font-medium">Owner Email:</span>
+                  <span className="text-primary-600 text-sm">{property.owner.email}</span>
+                </div>
+                <Button 
+                  size="sm" 
+                  onClick={() => window.open(`mailto:${property.owner.email}`)}
+                >
+                  Email
+                </Button>
+              </div>
+            ) : (
+              <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                <div className="flex items-center gap-2">
+                  <Mail className="w-4 h-4 text-gray-400" />
+                  <span className="font-medium text-gray-500">Owner Email:</span>
+                  <span className="text-gray-400">Not available</span>
+                </div>
+              </div>
+            )}
+          </div>
+
+          <form onSubmit={handleContactSubmit} className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Your Name
+              </label>
+              <input
+                type="text"
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                value={contactForm.name}
+                onChange={(e) => setContactForm({...contactForm, name: e.target.value})}
+                required
+              />
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Email
+              </label>
+              <input
+                type="email"
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                value={contactForm.email}
+                onChange={(e) => setContactForm({...contactForm, email: e.target.value})}
+                required
+              />
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Phone Number
+              </label>
+              <input
+                type="tel"
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                value={contactForm.phone}
+                onChange={(e) => setContactForm({...contactForm, phone: e.target.value})}
+              />
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Message
+              </label>
+              <textarea
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                rows="4"
+                value={contactForm.message}
+                onChange={(e) => setContactForm({...contactForm, message: e.target.value})}
+                placeholder="I'm interested in this property. Please provide more details."
+                required
+              />
+            </div>
+            
+            <div className="flex gap-3">
+              <Button
+                type="submit"
+                disabled={sendingMessage}
+                className="flex-1 py-3"
+              >
+                {sendingMessage ? <Loader2 className="animate-spin w-4 h-4 mr-2" /> : <Send className="w-4 h-4 mr-2" />}
+                Send Message
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setContactForm({
+                  name: user?.full_name || '',
+                  email: user?.email || '',
+                  phone: user?.phone || '',
+                  message: "I'm interested in this property. Please provide more details."
+                })}
+                className="px-6 py-3"
+              >
+                Cancel
+              </Button>
+            </div>
+          </form>
+        </div>
+      </Card>
 
       {/* IMAGE VIEWER */}
       {showImageViewer && (
