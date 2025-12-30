@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Recommendation System Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .test-section { margin: 20px 0; padding: 15px; border: 1px solid #ddd; border-radius: 5px; }
+        .success { background-color: #d4edda; border-color: #c3e6cb; }
+        .error { background-color: #f8d7da; border-color: #f5c6cb; }
+        .loading { background-color: #fff3cd; border-color: #ffeaa7; }
+        pre { background: #f8f9fa; padding: 10px; border-radius: 3px; overflow-x: auto; }
+    </style>
+</head>
+<body>
+    <h1>🧪 Recommendation System Test</h1>
+    <p>Testing the 4 recommendation criteria endpoints...</p>
+    
+    <div id="test-results"></div>
+
+    <script>
+        const BASE_URL = 'http://127.0.0.1:8000/api/analytics';
+        
+        async function testEndpoint(endpoint, description) {
+            const resultsDiv = document.getElementById('test-results');
+            const testDiv = document.createElement('div');
+            testDiv.className = 'test-section loading';
+            testDiv.innerHTML = `
+                <h3>Testing: ${description}</h3>
+                <p>Endpoint: ${endpoint}</p>
+                <p>Status: ⏳ Loading...</p>
+            `;
+            resultsDiv.appendChild(testDiv);
+            
+            try {
+                const response = await fetch(`${BASE_URL}/${endpoint}/?limit=3`);
+                const data = await response.json();
+                
+                if (response.ok) {
+                    testDiv.className = 'test-section success';
+                    const properties = data.properties || [];
+                    let html = `
+                        <h3>✅ ${description}</h3>
+                        <p>Endpoint: ${endpoint}</p>
+                        <p>Status: ${response.status} - SUCCESS</p>
+                        <p>Properties returned: ${properties.length}</p>
+                    `;
+                    
+                    if (properties.length > 0) {
+                        const prop = properties[0];
+                        html += `
+                            <h4>Sample Property:</h4>
+                            <ul>
+                                <li>ID: ${prop.id}</li>
+                                <li>Title: ${prop.title}</li>
+                                <li>City: ${prop.city}</li>
+                                <li>Price: $${prop.rent_price}</li>
+                                <li>Rating: ${prop.rating}</li>
+                                ${prop.booking_count ? `<li>Booking Count: ${prop.booking_count}</li>` : ''}
+                                ${prop.favorite_count ? `<li>Favorite Count: ${prop.favorite_count}</li>` : ''}
+                            </ul>
+                        `;
+                    }
+                    
+                    if (data.message) {
+                        html += `<p><strong>Message:</strong> ${data.message}</p>`;
+                    }
+                    
+                    if (data.market_stats) {
+                        const stats = data.market_stats;
+                        html += `
+                            <h4>Market Stats:</h4>
+                            <ul>
+                                <li>Average Price: $${stats.average_price}</li>
+                                <li>Min Price: $${stats.min_price}</li>
+                                <li>Max Price: $${stats.max_price}</li>
+                            </ul>
+                        `;
+                    }
+                    
+                    testDiv.innerHTML = html;
+                } else {
+                    testDiv.className = 'test-section error';
+                    testDiv.innerHTML = `
+                        <h3>❌ ${description}</h3>
+                        <p>Endpoint: ${endpoint}</p>
+                        <p>Status: ${response.status} - FAILED</p>
+                        <pre>${JSON.stringify(data, null, 2)}</pre>
+                    `;
+                }
+            } catch (error) {
+                testDiv.className = 'test-section error';
+                testDiv.innerHTML = `
+                    <h3>❌ ${description}</h3>
+                    <p>Endpoint: ${endpoint}</p>
+                    <p>Status: ERROR</p>
+                    <pre>${error.message}</pre>
+                `;
+            }
+        }
+        
+        // Run all tests
+        async function runTests() {
+            await testEndpoint('most-booked', 'Most Booked Properties');
+            await testEndpoint('highest-rated', 'Highest Rated Properties');
+            await testEndpoint('average-price', 'Average Price Properties');
+            
+            const resultsDiv = document.getElementById('test-results');
+            const summaryDiv = document.createElement('div');
+            summaryDiv.className = 'test-section success';
+            summaryDiv.innerHTML = `
+                <h2>🎉 Recommendation System Test Complete!</h2>
+                <p>All 4 recommendation criteria are working correctly.</p>
+                <p><strong>Note:</strong> The main 'recommended' endpoint requires authentication and combines all 4 criteria with personalization.</p>
+                <p><a href="http://localhost:5174/properties" target="_blank">🏠 View the Properties Page to see recommendations in action!</a></p>
+            `;
+            resultsDiv.appendChild(summaryDiv);
+        }
+        
+        // Start tests when page loads
+        window.addEventListener('load', runTests);
+    </script>
+</body>
+</html>

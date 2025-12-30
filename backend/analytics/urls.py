@@ -10,4 +10,11 @@ urlpatterns = [
     path('renter-analytics/', views.renter_analytics, name='renter-analytics'),
     path('admin-dashboard/', views.admin_dashboard, name='admin-dashboard'),
     path('market-trends/', views.market_trends_comprehensive, name='market-trends-comprehensive'),
+    
+    # NEW RECOMMENDATION ENDPOINTS BASED ON 4 CRITERIA
+    path('recommended/', views.recommended_properties, name='recommended-properties'),
+    path('most-booked/', views.most_booked_properties, name='most-booked-properties'),
+    path('highest-rated/', views.highest_rated_properties, name='highest-rated-properties'),
+    path('user-search-based/', views.user_search_based_properties, name='user-search-based-properties'),
+    path('average-price/', views.average_price_properties, name='average-price-properties'),
 ]

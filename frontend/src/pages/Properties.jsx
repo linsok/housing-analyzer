@@ -126,12 +126,111 @@ const Properties = () => {
 
   const loadRecommendedProperties = async () => {
     try {
-      const response = await propertyService.getRecommended();
-      // Add mock data for demonstration if no recommended properties
-      const recommended = response.results || response;
-      setRecommendedProperties(recommended.slice(0, 3));
+      console.log('🔍 Loading recommended properties for Properties page...');
+      console.log('👤 Authenticated:', isAuthenticated);
+      
+      // Get all 4 recommendation types - handle authentication gracefully
+      const [
+        mostBookedResponse,
+        highestRatedResponse,
+        userSearchResponse,
+        averagePriceResponse
+      ] = await Promise.allSettled([
+        propertyService.getMostBookedProperties(3),
+        propertyService.getHighestRatedProperties(3),
+        isAuthenticated ? propertyService.getUserSearchBasedProperties(3) : Promise.resolve({ properties: [] }),
+        propertyService.getAveragePriceProperties(3)
+      ]);
+
+      console.log('📡 API Responses (settled):', {
+        mostBooked: mostBookedResponse.status,
+        highestRated: highestRatedResponse.status,
+        userSearch: userSearchResponse.status,
+        averagePrice: averagePriceResponse.status
+      });
+
+      // Extract data from successful responses
+      const mostBookedData = mostBookedResponse.status === 'fulfilled' ? mostBookedResponse.value : { properties: [] };
+      const highestRatedData = highestRatedResponse.status === 'fulfilled' ? highestRatedResponse.value : { properties: [] };
+      const userSearchData = userSearchResponse.status === 'fulfilled' ? userSearchResponse.value : { properties: [] };
+      const averagePriceData = averagePriceResponse.status === 'fulfilled' ? averagePriceResponse.value : { properties: [] };
+
+      console.log('📊 Extracted data:', {
+        mostBooked: mostBookedData,
+        highestRated: highestRatedData,
+        userSearch: userSearchData,
+        averagePrice: averagePriceData
+      });
+
+      // Combine all recommendations with their criteria labels
+      const allRecommendations = [
+        ...(mostBookedData.properties || []).map(p => ({
+          ...p,
+          recommendation_type: 'most_booked',
+          recommendation_label: 'Most Booked - Popular & Trusted',
+          recommendation_message: mostBookedData.message || 'Most booked properties - popular and trusted options'
+        })),
+        ...(highestRatedData.properties || []).map(p => ({
+          ...p,
+          recommendation_type: 'highest_rated',
+          recommendation_label: 'Highest Rated - Top Rated by Guests',
+          recommendation_message: highestRatedData.message || 'Highest rated properties - top-rated by guests'
+        })),
+        ...(userSearchData.properties || []).map(p => ({
+          ...p,
+          recommendation_type: 'user_search_based',
+          recommendation_label: 'Recommended For You',
+          recommendation_message: userSearchData.message || 'Recommended based on your searches and viewing history'
+        })),
+        ...(averagePriceData.properties || []).map(p => ({
+          ...p,
+          recommendation_type: 'average_price',
+          recommendation_label: 'Best Value - Average Price',
+          recommendation_message: averagePriceData.message || 'Best value properties around average price',
+          market_stats: averagePriceData.market_stats
+        }))
+      ];
+
+      console.log('🎯 Combined recommendations:', allRecommendations);
+
+      // Remove duplicates and limit to 12 total for properties page
+      const uniqueRecommendations = [];
+      const seenIds = new Set();
+      
+      for (const prop of allRecommendations) {
+        if (!seenIds.has(prop.id)) {
+          uniqueRecommendations.push(prop);
+          seenIds.add(prop.id);
+          if (uniqueRecommendations.length >= 12) break;
+        }
+      }
+
+      console.log('✅ Final recommendations for display:', uniqueRecommendations);
+      console.log('📊 Properties that will show overlays:', uniqueRecommendations.map(p => ({
+        title: p.title,
+        recommendation_type: p.recommendation_type,
+        recommendation_label: p.recommendation_label
+      })));
+      
+      setRecommendedProperties(uniqueRecommendations);
+      
     } catch (error) {
-      console.error('Error loading recommended properties:', error);
+      console.error('❌ Error loading recommended properties:', error);
+      console.log('🔄 Falling back to old method...');
+      
+      // Fallback to old method if new endpoints fail
+      try {
+        const response = await propertyService.getRecommended();
+        const recommended = response.recommendations || response.results || response;
+        console.log('🔄 Fallback data:', recommended);
+        setRecommendedProperties(recommended.slice(0, 12));
+      } catch (fallbackError) {
+        console.error('❌ Error with fallback recommendation loading:', fallbackError);
+        // Set empty array to prevent infinite loading
+        setRecommendedProperties([]);
+      }
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -717,94 +816,162 @@ const Properties = () => {
             </div>
           </div>
         )}
+      </div>
 
-        {/* Results Header with Stats */}
-        <div className="mb-6">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-2xl font-bold text-gray-900">All Properties</h2>
-            <div className="text-gray-600">
-              {!loading && `${properties.length} properties found`}
+      {/* RECOMMENDED PROPERTIES SECTION - Display First */}
+      {!loading && recommendedProperties.length > 0 && (
+        <div className="mb-8">
+          <div className="flex items-center justify-between mb-6">
+            <div>
+              <h2 className="text-3xl font-bold text-gray-900 mb-2">Recommended Properties</h2>
+              <p className="text-gray-600">Personalized recommendations based on popularity, ratings, your preferences, and market value</p>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
+              <div className="w-3 h-3 bg-green-500 rounded-full"></div>
+              <div className="w-3 h-3 bg-yellow-500 rounded-full"></div>
+              <div className="w-3 h-3 bg-purple-500 rounded-full"></div>
             </div>
           </div>
           
-          {/* Quick Stats */}
-          {!loading && properties.length > 0 && (
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
-              <Card className="p-4 text-center">
-                <div className="text-2xl font-bold text-primary-600">
-                  {properties.filter(p => p.availability_status === 'available' || p.is_available !== false).length}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            {recommendedProperties.map((property) => (
+              <div key={property.id} className="relative">
+                {/* Recommendation Badge */}
+                <div className={`absolute top-2 left-2 z-10 px-2 py-1 rounded-full text-xs font-semibold text-white ${
+                  property.recommendation_type === 'most_booked' ? 'bg-blue-500' :
+                  property.recommendation_type === 'highest_rated' ? 'bg-green-500' :
+                  property.recommendation_type === 'user_search_based' ? 'bg-yellow-500' :
+                  'bg-purple-500'
+                }`}>
+                  {property.recommendation_label}
                 </div>
-                <div className="text-sm text-gray-600">Available Now</div>
-              </Card>
-              <Card className="p-4 text-center">
-                <div className="text-2xl font-bold text-green-600">
-                  {properties.filter(p => p.verification_status === 'verified').length}
+                
+                {/* Property Card */}
+                <PropertyCard 
+                  property={property} 
+                  onFavoriteToggle={loadProperties}
+                />
+                
+                {/* Recommendation Message */}
+                <div className="mt-2 p-2 bg-gray-50 rounded text-xs text-gray-600 text-center">
+                  {property.recommendation_message}
                 </div>
-                <div className="text-sm text-gray-600">Verified</div>
-              </Card>
-              <Card className="p-4 text-center">
-                <div className="text-2xl font-bold text-blue-600">
-                  {properties.filter(p => p.is_furnished).length}
-                </div>
-                <div className="text-sm text-gray-600">Furnished</div>
-              </Card>
-            </div>
-          )}
-        </div>
-
-        {loading ? (
-          <Loading />
-        ) : error ? (
-          <Card className="p-8 text-center">
-            <div className="text-red-500 mb-4">
-              <svg className="w-16 h-16 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-              </svg>
-              <h3 className="text-xl font-semibold text-gray-900 mb-2">Unable to Load Properties</h3>
-              <p className="text-gray-600 mb-4">
-                The backend server might not be running or there's a connection issue.
-              </p>
-            </div>
-            <div className="bg-gray-50 p-4 rounded-lg text-left mb-4">
-              <h4 className="font-semibold mb-2">To fix this issue:</h4>
-              <ol className="list-decimal list-inside space-y-2 text-sm text-gray-700">
-                <li>Make sure the backend server is running on <code className="bg-gray-200 px-2 py-1 rounded">http://localhost:8000</code></li>
-                <li>Check if you have any properties in the database</li>
-                <li>If you're an admin or owner, try adding some properties first</li>
-                <li>Verify your API connection in the browser console</li>
-              </ol>
-            </div>
-            <Button onClick={loadProperties} className="mt-4">
-              Try Again
-            </Button>
-          </Card>
-        ) : properties.length === 0 ? (
-          <Card className="p-8 text-center">
-            <div className="text-gray-400 mb-4">
-              <svg className="w-16 h-16 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
-              </svg>
-              <h3 className="text-xl font-semibold text-gray-900 mb-2">No Properties Found</h3>
-              <p className="text-gray-600 mb-4">
-                {Object.values(filters).some(v => v) 
-                  ? "No properties match your search criteria. Try adjusting your filters."
-                  : "There are no properties available yet. Please check back later or contact support."}
-              </p>
-            </div>
-            {Object.values(filters).some(v => v) && (
-              <Button variant="outline" onClick={clearFilters} className="mt-4">
-                Clear All Filters
-              </Button>
-            )}
-          </Card>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {properties.map((property) => (
-              <PropertyCard key={property.id} property={property} onFavoriteToggle={loadProperties} />
+              </div>
             ))}
+          </div>
+          
+          {/* Recommendation Criteria Legend */}
+          <div className="mt-6 p-4 bg-blue-50 rounded-lg">
+            <h3 className="font-semibold text-gray-900 mb-2">How we recommend:</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 text-sm">
+              <div className="flex items-center gap-2">
+                <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
+                <span><strong>Most Booked:</strong> Popular & trusted options</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-3 h-3 bg-green-500 rounded-full"></div>
+                <span><strong>Highest Rated:</strong> Top-rated by guests</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-3 h-3 bg-yellow-500 rounded-full"></div>
+                <span><strong>For You:</strong> Based on your search history</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-3 h-3 bg-purple-500 rounded-full"></div>
+                <span><strong>Best Value:</strong> Around average market price</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Results Header with Stats */}
+      <div className="mb-6">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-2xl font-bold text-gray-900">All Properties</h2>
+          <div className="text-gray-600">
+            {!loading && `${properties.length} properties found`}
+          </div>
+        </div>
+        
+        {/* Quick Stats */}
+        {!loading && properties.length > 0 && (
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+            <Card className="p-4 text-center">
+              <div className="text-2xl font-bold text-primary-600">
+                {properties.filter(p => p.availability_status === 'available' || p.is_available !== false).length}
+              </div>
+              <div className="text-sm text-gray-600">Available Now</div>
+            </Card>
+            <Card className="p-4 text-center">
+              <div className="text-2xl font-bold text-green-600">
+                {properties.filter(p => p.verification_status === 'verified').length}
+              </div>
+              <div className="text-sm text-gray-600">Verified</div>
+            </Card>
+            <Card className="p-4 text-center">
+              <div className="text-2xl font-bold text-blue-600">
+                {properties.filter(p => p.is_furnished).length}
+              </div>
+              <div className="text-sm text-gray-600">Furnished</div>
+            </Card>
           </div>
         )}
       </div>
+
+      {loading ? (
+        <Loading />
+      ) : error ? (
+        <Card className="p-8 text-center">
+          <div className="text-red-500 mb-4">
+            <svg className="w-16 h-16 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+            </svg>
+            <h3 className="text-xl font-semibold text-gray-900 mb-2">Unable to Load Properties</h3>
+            <p className="text-gray-600 mb-4">
+              The backend server might not be running or there's a connection issue.
+            </p>
+          </div>
+          <div className="bg-gray-50 p-4 rounded-lg text-left mb-4">
+            <h4 className="font-semibold mb-2">To fix this issue:</h4>
+            <ol className="list-decimal list-inside space-y-2 text-sm text-gray-700">
+              <li>Make sure the backend server is running on <code className="bg-gray-200 px-2 py-1 rounded">http://localhost:8000</code></li>
+              <li>Check if you have any properties in the database</li>
+              <li>If you're an admin or owner, try adding some properties first</li>
+              <li>Verify your API connection in the browser console</li>
+            </ol>
+          </div>
+          <Button onClick={loadProperties} className="mt-4">
+            Try Again
+          </Button>
+        </Card>
+      ) : properties.length === 0 ? (
+        <Card className="p-8 text-center">
+          <div className="text-gray-400 mb-4">
+            <svg className="w-16 h-16 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+            </svg>
+            <h3 className="text-xl font-semibold text-gray-900 mb-2">No Properties Found</h3>
+            <p className="text-gray-600 mb-4">
+              {Object.values(filters).some(v => v) 
+                ? "No properties match your search criteria. Try adjusting your filters."
+                : "There are no properties available yet. Please check back later or contact support."}
+            </p>
+          </div>
+          {Object.values(filters).some(v => v) && (
+            <Button variant="outline" onClick={clearFilters} className="mt-4">
+              Clear All Filters
+            </Button>
+          )}
+        </Card>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {properties.map((property) => (
+            <PropertyCard key={property.id} property={property} onFavoriteToggle={loadProperties} />
+          ))}
+        </div>
+      )}
     </div>
   );
 };

@@ -11,6 +11,14 @@ const PropertyCard = ({ property, onFavoriteToggle }) => {
   const [isFavorited, setIsFavorited] = useState(property.is_favorited || false);
   const [loading, setLoading] = useState(false);
 
+  // Debug logging
+  console.log('🏠 PropertyCard rendering:', {
+    id: property.id,
+    title: property.title,
+    recommendation_type: property.recommendation_type,
+    isRecommended: property.is_recommended || property.featured || property.recommendation_type
+  });
+
   const handleFavoriteClick = async (e) => {
     e.preventDefault();
     if (!isAuthenticated) {
@@ -37,14 +45,76 @@ const PropertyCard = ({ property, onFavoriteToggle }) => {
   // Check availability
   const isAvailable = property.availability_status === 'available' || property.is_available !== false;
   
-  // Check if recommended
-  const isRecommended = property.is_recommended || property.featured || false;
+  // Check if recommended (old system + new recommendation system)
+  const isRecommended = property.is_recommended || property.featured || property.recommendation_type || false;
+  
+  // Check if it's from our new 4-criteria recommendation system
+  const isNewRecommendation = property.recommendation_type && (
+    property.recommendation_type === 'most_booked' ||
+    property.recommendation_type === 'highest_rated' ||
+    property.recommendation_type === 'user_search_based' ||
+    property.recommendation_type === 'average_price'
+  );
+
+  // Debug recommendation detection
+  console.log('🎯 Recommendation detection:', {
+    propertyId: property.id,
+    propertyTitle: property.title,
+    recommendation_type: property.recommendation_type,
+    isRecommended: isRecommended,
+    isNewRecommendation: isNewRecommendation,
+    willShowOverlay: isNewRecommendation
+  });
 
   return (
     <Link to={`/properties/${property.id}`} className="block group">
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-lg transition-all duration-300">
         {/* Image */}
         <div className="relative h-48 bg-gray-200 overflow-hidden">
+          {/* PROMINENT RECOMMENDED OVERLAY for new recommendation system */}
+          {isNewRecommendation && (
+            <div className="absolute inset-0 z-20 pointer-events-none">
+              <div className="absolute top-0 left-0 right-0 bg-gradient-to-b from-black/70 to-transparent">
+                <div className="flex items-center justify-center pt-3">
+                  <div className="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-4 py-2 rounded-full text-sm font-bold shadow-lg flex items-center gap-2">
+                    <Award className="w-4 h-4" />
+                    RECOMMENDED
+                  </div>
+                </div>
+              </div>
+              {/* Corner ribbon */}
+              <div className="absolute top-2 right-2">
+                <div className={`w-16 h-16 overflow-hidden ${
+                  property.recommendation_type === 'most_booked' ? 'bg-blue-500' :
+                  property.recommendation_type === 'highest_rated' ? 'bg-green-500' :
+                  property.recommendation_type === 'user_search_based' ? 'bg-yellow-500' :
+                  'bg-purple-500'
+                }`}>
+                  <div className="absolute top-0 right-0 transform rotate-45 translate-x-4 -translate-y-1 origin-center">
+                    <span className="text-white text-xs font-bold whitespace-nowrap">
+                      {property.recommendation_type === 'most_booked' ? 'POPULAR' :
+                       property.recommendation_type === 'highest_rated' ? 'TOP RATED' :
+                       property.recommendation_type === 'user_search_based' ? 'FOR YOU' :
+                       'BEST VALUE'}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+          
+          {/* Legacy recommended badge for old system */}
+          {isRecommended && !isNewRecommendation && (
+            <div className="absolute top-0 left-0 right-0 bg-gradient-to-b from-amber-600/80 to-transparent z-10 pointer-events-none">
+              <div className="flex items-center justify-center pt-3">
+                <div className="bg-amber-500 text-white px-3 py-1 rounded-full text-xs font-bold shadow-md flex items-center gap-1">
+                  <Award className="w-3 h-3" />
+                  RECOMMENDED
+                </div>
+              </div>
+            </div>
+          )}
+          
           {property.primary_image || (property.images && property.images.length > 0) ? (
             <img
               src={property.primary_image || (property.images && property.images[0]?.image)}
@@ -78,18 +148,24 @@ const PropertyCard = ({ property, onFavoriteToggle }) => {
             />
           </button>
 
+          {/* Rating Stars on Surface */}
+          <div className="absolute bottom-3 left-3 flex items-center gap-1 bg-white/90 backdrop-blur-sm px-2 py-1 rounded-full shadow-md">
+            <Star className="w-4 h-4 text-yellow-500 fill-yellow-500" />
+            <span className="text-xs font-semibold text-gray-800">
+              {property.rating && !isNaN(property.rating) ? parseFloat(property.rating).toFixed(1) : '0.0'}
+            </span>
+            {reviewCount > 0 && (
+              <span className="text-xs text-gray-600">({reviewCount})</span>
+            )}
+          </div>
+
           {/* Badges */}
           <div className="absolute top-3 left-3 flex flex-col gap-2">
-            {isRecommended && (
+            {/* Only show recommended badge for legacy system, new system has prominent overlay */}
+            {isRecommended && !isNewRecommendation && (
               <Badge variant="warning" className="flex items-center gap-1 bg-amber-500 text-white">
                 <Award className="w-3 h-3" />
                 Recommended
-              </Badge>
-            )}
-            {property.verification_status === 'verified' && (
-              <Badge variant="success" className="flex items-center gap-1">
-                <CheckCircle className="w-3 h-3" />
-                Verified
               </Badge>
             )}
             {property.is_furnished && (

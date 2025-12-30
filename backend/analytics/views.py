@@ -9,6 +9,13 @@ from django.utils import timezone as django_timezone
 from properties.models import Property, PropertyView
 from bookings.models import Booking
 from .models import RentTrend
+from .recommendation import (
+    get_recommendations, 
+    get_most_booked_properties, 
+    get_highest_rated_properties,
+    get_user_search_based_properties,
+    get_average_price_properties
+)
 from decimal import Decimal
 
 
@@ -863,5 +870,242 @@ def renter_analytics(request):
         logger.error(f"Error in renter_analytics for user {getattr(request.user, 'id', 'unknown')}: {str(e)}", exc_info=True)
         return Response(
             {'error': 'An error occurred while processing your request', 'details': str(e)},
+            status=500
+        )
+
+
+# NEW RECOMMENDATION ENDPOINTS BASED ON 4 CRITERIA
+
+@api_view(['GET'])
+@permission_classes([permissions.IsAuthenticated])
+def recommended_properties(request):
+    """
+    Get property recommendations based on 4 criteria:
+    1. Most Booked Rooms / Properties
+    2. Highest Rating Star Rooms / Properties  
+    3. Most Searched by That User or Renter
+    4. Average Price Property
+    """
+    try:
+        user = request.user
+        limit = int(request.query_params.get('limit', 12))
+        
+        recommendations = get_recommendations(user, limit)
+        
+        # Serialize property data
+        serialized_recommendations = []
+        for prop in recommendations:
+            serialized_recommendations.append({
+                'id': prop.id,
+                'title': prop.title,
+                'description': prop.description,
+                'property_type': prop.property_type,
+                'address': prop.address,
+                'city': prop.city,
+                'district': prop.district,
+                'area': prop.area,
+                'rent_price': float(prop.rent_price),
+                'bedrooms': prop.bedrooms,
+                'bathrooms': prop.bathrooms,
+                'area_sqm': float(prop.area_sqm) if prop.area_sqm else None,
+                'is_furnished': prop.is_furnished,
+                'pets_allowed': prop.pets_allowed,
+                'status': prop.status,
+                'verification_status': prop.verification_status,
+                'view_count': prop.view_count,
+                'favorite_count': prop.favorite_count,
+                'rating': float(prop.rating),
+                'created_at': prop.created_at.isoformat(),
+                'images': [
+                    {
+                        'id': img.id,
+                        'image': img.image.url if img.image else None,
+                        'caption': img.caption,
+                        'is_primary': img.is_primary
+                    } for img in prop.images.all()[:3]
+                ]
+            })
+        
+        return Response({
+            'recommendations': serialized_recommendations,
+            'criteria': {
+                '1': 'Most Booked Rooms / Properties - Popular and trusted options',
+                '2': 'Highest Rating Star Rooms / Properties - Top-rated by guests', 
+                '3': 'Most Searched by That User or Renter - Personalized recommendations',
+                '4': 'Average Price Property - Best value around average price'
+            }
+        })
+        
+    except Exception as e:
+        return Response(
+            {'error': 'Failed to get recommendations', 'details': str(e)},
+            status=500
+        )
+
+
+@api_view(['GET'])
+@permission_classes([permissions.AllowAny])
+def most_booked_properties(request):
+    """
+    1. Most Booked Rooms / Properties
+    Rooms or properties that have been booked the highest number of times.
+    """
+    try:
+        limit = int(request.query_params.get('limit', 3))
+        properties = get_most_booked_properties(limit)
+        
+        serialized_properties = []
+        for prop in properties:
+            booking_count = Booking.objects.filter(property=prop).count()
+            serialized_properties.append({
+                'id': prop.id,
+                'title': prop.title,
+                'city': prop.city,
+                'rent_price': float(prop.rent_price),
+                'rating': float(prop.rating),
+                'booking_count': booking_count,
+                'view_count': prop.view_count,
+                'property_type': prop.property_type,
+                'bedrooms': prop.bedrooms,
+                'image': prop.images.filter(is_primary=True).first().image.url if prop.images.filter(is_primary=True).exists() else None
+            })
+        
+        return Response({
+            'properties': serialized_properties,
+            'message': 'Most booked properties - popular and trusted options'
+        })
+        
+    except Exception as e:
+        return Response(
+            {'error': 'Failed to get most booked properties', 'details': str(e)},
+            status=500
+        )
+
+
+@api_view(['GET'])
+@permission_classes([permissions.AllowAny])
+def highest_rated_properties(request):
+    """
+    2. Highest Rating Star Rooms / Properties
+    Rooms or properties with the highest average user review rating.
+    """
+    try:
+        limit = int(request.query_params.get('limit', 3))
+        properties = get_highest_rated_properties(limit)
+        
+        serialized_properties = []
+        for prop in properties:
+            serialized_properties.append({
+                'id': prop.id,
+                'title': prop.title,
+                'city': prop.city,
+                'rent_price': float(prop.rent_price),
+                'rating': float(prop.rating),
+                'favorite_count': prop.favorite_count,
+                'view_count': prop.view_count,
+                'property_type': prop.property_type,
+                'bedrooms': prop.bedrooms,
+                'image': prop.images.filter(is_primary=True).first().image.url if prop.images.filter(is_primary=True).exists() else None
+            })
+        
+        return Response({
+            'properties': serialized_properties,
+            'message': 'Highest rated properties - top-rated by guests'
+        })
+        
+    except Exception as e:
+        return Response(
+            {'error': 'Failed to get highest rated properties', 'details': str(e)},
+            status=500
+        )
+
+
+@api_view(['GET'])
+@permission_classes([permissions.IsAuthenticated])
+def user_search_based_properties(request):
+    """
+    3. Most Searched by That User or Renter
+    Properties similar to what the user searches for most often.
+    """
+    try:
+        user = request.user
+        limit = int(request.query_params.get('limit', 3))
+        properties = get_user_search_based_properties(user, limit)
+        
+        serialized_properties = []
+        for prop in properties:
+            serialized_properties.append({
+                'id': prop.id,
+                'title': prop.title,
+                'city': prop.city,
+                'rent_price': float(prop.rent_price),
+                'rating': float(prop.rating),
+                'view_count': prop.view_count,
+                'property_type': prop.property_type,
+                'bedrooms': prop.bedrooms,
+                'image': prop.images.filter(is_primary=True).first().image.url if prop.images.filter(is_primary=True).exists() else None
+            })
+        
+        return Response({
+            'properties': serialized_properties,
+            'message': 'Recommended based on your searches and viewing history'
+        })
+        
+    except Exception as e:
+        return Response(
+            {'error': 'Failed to get user search based properties', 'details': str(e)},
+            status=500
+        )
+
+
+@api_view(['GET'])
+@permission_classes([permissions.AllowAny])
+def average_price_properties(request):
+    """
+    4. Average Price Property
+    Properties priced around the average market price.
+    """
+    try:
+        limit = int(request.query_params.get('limit', 3))
+        properties = get_average_price_properties(limit)
+        
+        # Calculate market averages for context
+        market_stats = Property.objects.filter(
+            verification_status='verified',
+            status='available',
+            rent_price__gt=0
+        ).aggregate(
+            avg_price=Avg('rent_price'),
+            min_price=Min('rent_price'),
+            max_price=Max('rent_price')
+        )
+        
+        serialized_properties = []
+        for prop in properties:
+            serialized_properties.append({
+                'id': prop.id,
+                'title': prop.title,
+                'city': prop.city,
+                'rent_price': float(prop.rent_price),
+                'rating': float(prop.rating),
+                'view_count': prop.view_count,
+                'property_type': prop.property_type,
+                'bedrooms': prop.bedrooms,
+                'image': prop.images.filter(is_primary=True).first().image.url if prop.images.filter(is_primary=True).exists() else None
+            })
+        
+        return Response({
+            'properties': serialized_properties,
+            'market_stats': {
+                'average_price': float(market_stats['avg_price'] or 0),
+                'min_price': float(market_stats['min_price'] or 0),
+                'max_price': float(market_stats['max_price'] or 0)
+            },
+            'message': 'Best value properties around average price'
+        })
+        
+    except Exception as e:
+        return Response(
+            {'error': 'Failed to get average price properties', 'details': str(e)},
             status=500
         )

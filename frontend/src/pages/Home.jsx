@@ -7,9 +7,11 @@ import Card from '../components/ui/Card';
 import { propertyService } from '../services/propertyService';
 import Loading from '../components/ui/Loading';
 import AIAssistant from '../components/AIAssistant';
+import { useAuthStore } from '../store/useAuthStore';
 
 const Home = () => {
   const navigate = useNavigate();
+  const { isAuthenticated } = useAuthStore();
   const [searchQuery, setSearchQuery] = useState('');
   const [recommendedProperties, setRecommendedProperties] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -20,10 +22,109 @@ const Home = () => {
 
   const loadRecommendedProperties = async () => {
     try {
-      const response = await propertyService.getRecommended();
-      setRecommendedProperties(response.results || response);
+      console.log('🔍 Loading recommended properties...');
+      console.log('👤 Authenticated:', isAuthenticated);
+      
+      // Get all 4 recommendation types - handle authentication gracefully
+      const [
+        mostBookedResponse,
+        highestRatedResponse,
+        userSearchResponse,
+        averagePriceResponse
+      ] = await Promise.allSettled([
+        propertyService.getMostBookedProperties(3),
+        propertyService.getHighestRatedProperties(3),
+        isAuthenticated ? propertyService.getUserSearchBasedProperties(3) : Promise.resolve({ properties: [] }),
+        propertyService.getAveragePriceProperties(3)
+      ]);
+
+      console.log('📡 API Responses (settled):', {
+        mostBooked: mostBookedResponse.status,
+        highestRated: highestRatedResponse.status,
+        userSearch: userSearchResponse.status,
+        averagePrice: averagePriceResponse.status
+      });
+
+      // Extract data from successful responses
+      const mostBookedData = mostBookedResponse.status === 'fulfilled' ? mostBookedResponse.value : { properties: [] };
+      const highestRatedData = highestRatedResponse.status === 'fulfilled' ? highestRatedResponse.value : { properties: [] };
+      const userSearchData = userSearchResponse.status === 'fulfilled' ? userSearchResponse.value : { properties: [] };
+      const averagePriceData = averagePriceResponse.status === 'fulfilled' ? averagePriceResponse.value : { properties: [] };
+
+      console.log('📊 Extracted data:', {
+        mostBooked: mostBookedData,
+        highestRated: highestRatedData,
+        userSearch: userSearchData,
+        averagePrice: averagePriceData
+      });
+
+      // Combine all recommendations with their criteria labels
+      const allRecommendations = [
+        ...(mostBookedData.properties || []).map(p => ({
+          ...p,
+          recommendation_type: 'most_booked',
+          recommendation_label: 'Most Booked - Popular & Trusted',
+          recommendation_message: mostBookedData.message || 'Most booked properties - popular and trusted options'
+        })),
+        ...(highestRatedData.properties || []).map(p => ({
+          ...p,
+          recommendation_type: 'highest_rated',
+          recommendation_label: 'Highest Rated - Top Rated by Guests',
+          recommendation_message: highestRatedData.message || 'Highest rated properties - top-rated by guests'
+        })),
+        ...(userSearchData.properties || []).map(p => ({
+          ...p,
+          recommendation_type: 'user_search_based',
+          recommendation_label: 'Recommended For You',
+          recommendation_message: userSearchData.message || 'Recommended based on your searches and viewing history'
+        })),
+        ...(averagePriceData.properties || []).map(p => ({
+          ...p,
+          recommendation_type: 'average_price',
+          recommendation_label: 'Best Value - Average Price',
+          recommendation_message: averagePriceData.message || 'Best value properties around average price',
+          market_stats: averagePriceData.market_stats
+        }))
+      ];
+
+      console.log('🎯 Combined recommendations:', allRecommendations);
+
+      // Remove duplicates and limit to 6 total for home page
+      const uniqueRecommendations = [];
+      const seenIds = new Set();
+      
+      for (const prop of allRecommendations) {
+        if (!seenIds.has(prop.id)) {
+          uniqueRecommendations.push(prop);
+          seenIds.add(prop.id);
+          if (uniqueRecommendations.length >= 6) break;
+        }
+      }
+
+      console.log('✅ Final recommendations for display:', uniqueRecommendations);
+      console.log('📊 Properties that will show overlays:', uniqueRecommendations.map(p => ({
+        title: p.title,
+        recommendation_type: p.recommendation_type,
+        recommendation_label: p.recommendation_label
+      })));
+      
+      setRecommendedProperties(uniqueRecommendations);
+      
     } catch (error) {
-      console.error('Error loading properties:', error);
+      console.error('❌ Error loading recommended properties:', error);
+      console.log('🔄 Falling back to old method...');
+      
+      // Fallback to old method if new endpoints fail
+      try {
+        const response = await propertyService.getRecommended();
+        const recommended = response.recommendations || response.results || response;
+        console.log('🔄 Fallback data:', recommended);
+        setRecommendedProperties(recommended.slice(0, 6));
+      } catch (fallbackError) {
+        console.error('❌ Error with fallback recommendation loading:', fallbackError);
+        // Set empty array to prevent infinite loading
+        setRecommendedProperties([]);
+      }
     } finally {
       setLoading(false);
     }
@@ -117,20 +218,93 @@ const Home = () => {
       <section className="py-16 bg-gray-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center mb-8">
-            <h2 className="text-3xl font-bold">Recommended Properties</h2>
-            <Link to="/properties">
-              <Button variant="outline">View All</Button>
-            </Link>
+            <div>
+              <h2 className="text-3xl font-bold text-gray-900 mb-2">Recommended Properties</h2>
+              <p className="text-gray-600">Personalized recommendations based on popularity, ratings, your preferences, and market value</p>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
+              <div className="w-3 h-3 bg-green-500 rounded-full"></div>
+              <div className="w-3 h-3 bg-yellow-500 rounded-full"></div>
+              <div className="w-3 h-3 bg-purple-500 rounded-full"></div>
+              <Link to="/properties">
+                <Button variant="outline">View All</Button>
+              </Link>
+            </div>
           </div>
 
+          {/* Property List - Below heading and description */}
           {loading ? (
             <Loading />
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {recommendedProperties.slice(0, 6).map((property) => (
-                <PropertyCard key={property.id} property={property} />
-              ))}
-            </div>
+            <>
+              {recommendedProperties.length > 0 ? (
+                <>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {recommendedProperties.map((property) => (
+                      <div key={property.id} className="relative">
+                        {/* Recommendation Badge */}
+                        <div className={`absolute top-2 left-2 z-10 px-2 py-1 rounded-full text-xs font-semibold text-white ${
+                          property.recommendation_type === 'most_booked' ? 'bg-blue-500' :
+                          property.recommendation_type === 'highest_rated' ? 'bg-green-500' :
+                          property.recommendation_type === 'user_search_based' ? 'bg-yellow-500' :
+                          'bg-purple-500'
+                        }`}>
+                          {property.recommendation_label}
+                        </div>
+                        
+                        {/* Property Card */}
+                        <PropertyCard 
+                          property={property} 
+                          onFavoriteToggle={loadRecommendedProperties}
+                        />
+                        
+                        {/* Recommendation Message */}
+                        <div className="mt-2 p-2 bg-gray-50 rounded text-xs text-gray-600 text-center">
+                          {property.recommendation_message}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  
+                  {/* Recommendation Criteria Legend */}
+                  <div className="mt-8 p-4 bg-blue-50 rounded-lg">
+                    <h3 className="font-semibold text-gray-900 mb-3">How we recommend:</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 text-sm">
+                      <div className="flex items-center gap-2">
+                        <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
+                        <span><strong>Most Booked:</strong> Popular & trusted options</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <div className="w-3 h-3 bg-green-500 rounded-full"></div>
+                        <span><strong>Highest Rated:</strong> Top-rated by guests</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <div className="w-3 h-3 bg-yellow-500 rounded-full"></div>
+                        <span><strong>For You:</strong> Based on your search history</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <div className="w-3 h-3 bg-purple-500 rounded-full"></div>
+                        <span><strong>Best Value:</strong> Around average market price</span>
+                      </div>
+                    </div>
+                  </div>
+                </>
+              ) : (
+                <div className="text-center py-12">
+                  <div className="text-gray-400 mb-4">
+                    <svg className="w-16 h-16 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+                    </svg>
+                  </div>
+                  <h3 className="text-xl font-semibold text-gray-900 mb-2">No Recommended Properties Available</h3>
+                  <p className="text-gray-600 mb-4">
+                    We're loading personalized recommendations for you. Please check back in a moment.
+                  </p>
+                  <Loading />
+                </div>
+              )}
+            </>
           )}
         </div>
       </section>

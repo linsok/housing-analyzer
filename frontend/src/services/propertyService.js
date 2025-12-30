@@ -60,7 +60,28 @@ export const propertyService = {
   },
 
   async getRecommended() {
-    const response = await api.get('/properties/recommended/');
+    const response = await api.get('/analytics/recommended/');
+    return response.data;
+  },
+
+  // NEW RECOMMENDATION ENDPOINTS BASED ON 4 CRITERIA
+  async getMostBookedProperties(limit = 3) {
+    const response = await api.get('/analytics/most-booked/', { params: { limit } });
+    return response.data;
+  },
+
+  async getHighestRatedProperties(limit = 3) {
+    const response = await api.get('/analytics/highest-rated/', { params: { limit } });
+    return response.data;
+  },
+
+  async getUserSearchBasedProperties(limit = 3) {
+    const response = await api.get('/analytics/user-search-based/', { params: { limit } });
+    return response.data;
+  },
+
+  async getAveragePriceProperties(limit = 3) {
+    const response = await api.get('/analytics/average-price/', { params: { limit } });
     return response.data;
   },
 
