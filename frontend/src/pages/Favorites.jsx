@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Heart, MapPin, DollarSign, Bed, Bath, Home, Trash2, Eye, Calendar } from 'lucide-react';
+import { Heart, MapPin, DollarSign, Bed, Bath, Home, Trash2, Eye, Calendar, AlertCircle } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import Card from '../components/ui/Card';
 import Button from '../components/ui/Button';
@@ -31,7 +31,15 @@ const Favorites = () => {
     } catch (error) {
       console.error('Error loading favorites:', error);
       console.error('Error details:', error.response?.data);
-      setError(error.response?.data?.detail || error.message || 'Failed to load favorites');
+      
+      // Handle specific backend error
+      if (error.response?.status === 500) {
+        setError('Backend server error. The favorites feature is temporarily unavailable.');
+      } else if (error.response?.data?.detail) {
+        setError(error.response.data.detail);
+      } else {
+        setError(error.message || 'Failed to load favorites');
+      }
     } finally {
       setLoading(false);
     }
@@ -68,15 +76,25 @@ const Favorites = () => {
         {/* Error Message */}
         {error && (
           <Card className="mb-6 bg-red-50 border-red-200">
-            <div className="flex items-center gap-2 text-red-800">
-              <AlertCircle className="w-5 h-5" />
-              <div>
-                <div className="font-semibold">Error loading favorites</div>
-                <div className="text-sm">{error}</div>
-                <div className="text-xs mt-2">
-                  Please check the browser console (F12) for more details.
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2 text-red-800">
+                <AlertCircle className="w-5 h-5" />
+                <div>
+                  <div className="font-semibold">Error loading favorites</div>
+                  <div className="text-sm">{error}</div>
+                  <div className="text-xs mt-2">
+                    Please check the browser console (F12) for more details.
+                  </div>
                 </div>
               </div>
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={loadFavorites}
+                className="ml-4"
+              >
+                Retry
+              </Button>
             </div>
           </Card>
         )}

@@ -71,53 +71,9 @@ const PropertyCard = ({ property, onFavoriteToggle }) => {
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-lg transition-all duration-300">
         {/* Image */}
         <div className="relative h-48 bg-gray-200 overflow-hidden">
-          {/* PROMINENT RECOMMENDED OVERLAY for new recommendation system */}
-          {isNewRecommendation && (
-            <div className="absolute inset-0 z-20 pointer-events-none">
-              <div className="absolute top-0 left-0 right-0 bg-gradient-to-b from-black/70 to-transparent">
-                <div className="flex items-center justify-center pt-3">
-                  <div className="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-4 py-2 rounded-full text-sm font-bold shadow-lg flex items-center gap-2">
-                    <Award className="w-4 h-4" />
-                    RECOMMENDED
-                  </div>
-                </div>
-              </div>
-              {/* Corner ribbon */}
-              <div className="absolute top-2 right-2">
-                <div className={`w-16 h-16 overflow-hidden ${
-                  property.recommendation_type === 'most_booked' ? 'bg-blue-500' :
-                  property.recommendation_type === 'highest_rated' ? 'bg-green-500' :
-                  property.recommendation_type === 'user_search_based' ? 'bg-yellow-500' :
-                  'bg-purple-500'
-                }`}>
-                  <div className="absolute top-0 right-0 transform rotate-45 translate-x-4 -translate-y-1 origin-center">
-                    <span className="text-white text-xs font-bold whitespace-nowrap">
-                      {property.recommendation_type === 'most_booked' ? 'POPULAR' :
-                       property.recommendation_type === 'highest_rated' ? 'TOP RATED' :
-                       property.recommendation_type === 'user_search_based' ? 'FOR YOU' :
-                       'BEST VALUE'}
-                    </span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-          
-          {/* Legacy recommended badge for old system */}
-          {isRecommended && !isNewRecommendation && (
-            <div className="absolute top-0 left-0 right-0 bg-gradient-to-b from-amber-600/80 to-transparent z-10 pointer-events-none">
-              <div className="flex items-center justify-center pt-3">
-                <div className="bg-amber-500 text-white px-3 py-1 rounded-full text-xs font-bold shadow-md flex items-center gap-1">
-                  <Award className="w-3 h-3" />
-                  RECOMMENDED
-                </div>
-              </div>
-            </div>
-          )}
-          
-          {property.primary_image || (property.images && property.images.length > 0) ? (
+          {property.primary_image || property.image || (property.images && property.images.length > 0) ? (
             <img
-              src={property.primary_image || (property.images && property.images[0]?.image)}
+              src={property.primary_image || property.image || (property.images && property.images[0]?.image)}
               alt={property.title}
               className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
               onError={(e) => {

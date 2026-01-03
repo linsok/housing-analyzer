@@ -97,6 +97,12 @@ const OwnerDashboard = () => {
               Manage Properties
             </Button>
           </Link>
+          <Link to="/owner/analysis">
+            <Button variant="outline" className="flex items-center">
+              <TrendingUp className="w-5 h-5 mr-2" />
+              View Analysis
+            </Button>
+          </Link>
           <Link to="/owner/properties/new">
             <Button>
               <Plus className="w-5 h-5 mr-2" />

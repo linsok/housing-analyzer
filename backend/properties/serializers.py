@@ -137,9 +137,9 @@ class FavoriteSerializer(serializers.ModelSerializer):
             images.append({
                 'id': img.id,
                 'image': self.context['request'].build_absolute_uri(img.image.url) if img.image else None,
-                'is_primary': img.is_primary,
-                'is_qr_code': img.is_qr_code,
-                'order': img.order
+                'is_primary': getattr(img, 'is_primary', False),
+                'is_qr_code': getattr(img, 'is_qr_code', False),
+                'order': getattr(img, 'order', 0)
             })
         
         return {

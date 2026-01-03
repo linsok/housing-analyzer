@@ -44,4 +44,46 @@ export const analyticsService = {
     const response = await api.get('/analytics/market-trends/');
     return response.data;
   },
+
+  async getRenterSpending(period = '6months') {
+    const response = await api.get('/analytics/renter-spending/', {
+      params: { period },
+    });
+    return response.data;
+  },
+
+  async getRenterActivity(period = '6months') {
+    const response = await api.get('/analytics/renter-activity/', {
+      params: { period },
+    });
+    return response.data;
+  },
+
+  async getOwnerRevenueTrends(period = '6months') {
+    const response = await api.get('/analytics/owner-revenue-trends/', {
+      params: { period },
+    });
+    return response.data;
+  },
+
+  async getOwnerDemandTrends(period = '6months') {
+    const response = await api.get('/analytics/owner-demand-trends/', {
+      params: { period },
+    });
+    return response.data;
+  },
+
+  async getOwnerSatisfactionTrends(period = '6months') {
+    const response = await api.get('/analytics/owner-satisfaction-trends/', {
+      params: { period },
+    });
+    return response.data;
+  },
+
+  async getOwnerRentPriceTrends(period = '6months') {
+    const response = await api.get('/analytics/owner-rent-trends/', {
+      params: { period },
+    });
+    return response.data;
+  },
 };

@@ -23,8 +23,8 @@ const Footer = () => {
             <ul className="space-y-2 text-sm">
               <li><Link to="/properties" className="hover:text-primary-500">Browse Properties</Link></li>
               <li><Link to="/about" className="hover:text-primary-500">About Us</Link></li>
-              <li><Link to="/analytics" className="hover:text-primary-500">Market Analytics</Link></li>
-              <li><Link to="/contact" className="hover:text-primary-500">Contact</Link></li>
+              <li><Link to="/market-trend" className="hover:text-primary-500">Market Analytics</Link></li>
+              <li><Link to="/support" className="hover:text-primary-500">Contact</Link></li>
             </ul>
           </div>
 
@@ -33,9 +33,6 @@ const Footer = () => {
             <h3 className="text-white font-semibold mb-4">For Property Owners</h3>
             <ul className="space-y-2 text-sm">
               <li><Link to="/register" className="hover:text-primary-500">List Your Property</Link></li>
-              <li><Link to="/owner/dashboard" className="hover:text-primary-500">Owner Dashboard</Link></li>
-              <li><Link to="/pricing" className="hover:text-primary-500">Pricing</Link></li>
-              <li><Link to="/faq" className="hover:text-primary-500">FAQ</Link></li>
             </ul>
           </div>
 
@@ -60,7 +57,7 @@ const Footer = () => {
         </div>
 
         <div className="border-t border-gray-800 mt-8 pt-8 text-sm text-center text-gray-400">
-          <p>&copy; 2025 Housing & Rent Analyzer - Group 05. All rights reserved.</p>
+          <p>&copy; 2026 Housing & Rent Analyzer - Group 05. All rights reserved.</p>
           <p className="mt-2">Built with  by Thoeun Soklin, Sov Sakura, Chhom Sodanith, Chhiv Sivmeng</p>
         </div>
       </div>

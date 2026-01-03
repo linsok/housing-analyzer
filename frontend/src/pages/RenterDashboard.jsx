@@ -313,6 +313,12 @@ const RenterDashboard = () => {
                     View Market Trends
                   </Button>
                 </Link>
+                <Link to="/renter/analysis">
+                  <Button variant="outline" className="w-full justify-start">
+                    <TrendingUp className="w-4 h-4 mr-2" />
+                    View Analysis
+                  </Button>
+                </Link>
                 <Link to="/profile">
                   <Button variant="outline" className="w-full justify-start">
                     Update Preferences

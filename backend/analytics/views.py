@@ -957,17 +957,30 @@ def most_booked_properties(request):
         serialized_properties = []
         for prop in properties:
             booking_count = Booking.objects.filter(property=prop).count()
+            
+            # Get primary image with full URL
+            primary_image = None
+            primary_img_obj = prop.images.filter(is_primary=True).first()
+            if primary_img_obj and primary_img_obj.image:
+                primary_image = request.build_absolute_uri(primary_img_obj.image.url)
+            
             serialized_properties.append({
                 'id': prop.id,
                 'title': prop.title,
+                'address': prop.address,
                 'city': prop.city,
+                'district': prop.district,
+                'area': prop.area,
                 'rent_price': float(prop.rent_price),
                 'rating': float(prop.rating),
                 'booking_count': booking_count,
                 'view_count': prop.view_count,
                 'property_type': prop.property_type,
                 'bedrooms': prop.bedrooms,
-                'image': prop.images.filter(is_primary=True).first().image.url if prop.images.filter(is_primary=True).exists() else None
+                'bathrooms': prop.bathrooms,
+                'area_sqm': prop.area_sqm,
+                'primary_image': primary_image,
+                'image': primary_image  # Keep for backward compatibility
             })
         
         return Response({
@@ -995,17 +1008,29 @@ def highest_rated_properties(request):
         
         serialized_properties = []
         for prop in properties:
+            # Get primary image with full URL
+            primary_image = None
+            primary_img_obj = prop.images.filter(is_primary=True).first()
+            if primary_img_obj and primary_img_obj.image:
+                primary_image = request.build_absolute_uri(primary_img_obj.image.url)
+            
             serialized_properties.append({
                 'id': prop.id,
                 'title': prop.title,
+                'address': prop.address,
                 'city': prop.city,
+                'district': prop.district,
+                'area': prop.area,
                 'rent_price': float(prop.rent_price),
                 'rating': float(prop.rating),
                 'favorite_count': prop.favorite_count,
                 'view_count': prop.view_count,
                 'property_type': prop.property_type,
                 'bedrooms': prop.bedrooms,
-                'image': prop.images.filter(is_primary=True).first().image.url if prop.images.filter(is_primary=True).exists() else None
+                'bathrooms': prop.bathrooms,
+                'area_sqm': prop.area_sqm,
+                'primary_image': primary_image,
+                'image': primary_image  # Keep for backward compatibility
             })
         
         return Response({
@@ -1034,16 +1059,28 @@ def user_search_based_properties(request):
         
         serialized_properties = []
         for prop in properties:
+            # Get primary image with full URL
+            primary_image = None
+            primary_img_obj = prop.images.filter(is_primary=True).first()
+            if primary_img_obj and primary_img_obj.image:
+                primary_image = request.build_absolute_uri(primary_img_obj.image.url)
+            
             serialized_properties.append({
                 'id': prop.id,
                 'title': prop.title,
+                'address': prop.address,
                 'city': prop.city,
+                'district': prop.district,
+                'area': prop.area,
                 'rent_price': float(prop.rent_price),
                 'rating': float(prop.rating),
                 'view_count': prop.view_count,
                 'property_type': prop.property_type,
                 'bedrooms': prop.bedrooms,
-                'image': prop.images.filter(is_primary=True).first().image.url if prop.images.filter(is_primary=True).exists() else None
+                'bathrooms': prop.bathrooms,
+                'area_sqm': prop.area_sqm,
+                'primary_image': primary_image,
+                'image': primary_image  # Keep for backward compatibility
             })
         
         return Response({
@@ -1082,16 +1119,28 @@ def average_price_properties(request):
         
         serialized_properties = []
         for prop in properties:
+            # Get primary image with full URL
+            primary_image = None
+            primary_img_obj = prop.images.filter(is_primary=True).first()
+            if primary_img_obj and primary_img_obj.image:
+                primary_image = request.build_absolute_uri(primary_img_obj.image.url)
+            
             serialized_properties.append({
                 'id': prop.id,
                 'title': prop.title,
+                'address': prop.address,
                 'city': prop.city,
+                'district': prop.district,
+                'area': prop.area,
                 'rent_price': float(prop.rent_price),
                 'rating': float(prop.rating),
                 'view_count': prop.view_count,
                 'property_type': prop.property_type,
                 'bedrooms': prop.bedrooms,
-                'image': prop.images.filter(is_primary=True).first().image.url if prop.images.filter(is_primary=True).exists() else None
+                'bathrooms': prop.bathrooms,
+                'area_sqm': prop.area_sqm,
+                'primary_image': primary_image,
+                'image': primary_image  # Keep for backward compatibility
             })
         
         return Response({

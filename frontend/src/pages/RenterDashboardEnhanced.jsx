@@ -75,6 +75,12 @@ const RenterDashboardEnhanced = () => {
               My Visit Bookings
             </Button>
           </Link>
+          <Link to="/renter/analysis">
+            <Button variant="outline" className="flex items-center">
+              <BarChart3 className="w-5 h-5 mr-2" />
+              Analysis
+            </Button>
+          </Link>
         </div>
 
         {/* Payment Reminders - Urgent Section */}
