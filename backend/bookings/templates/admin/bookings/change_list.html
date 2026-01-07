@@ -1,0 +1,57 @@
+{% extends "admin/change_list.html" %}
+
+{% block object-tools-items %}
+  {{ block.super }}
+  
+  <!-- Customer Statistics -->
+  {% if stats %}
+  <div style="background: #f8f9fa; padding: 15px; margin-bottom: 20px; border-radius: 5px;">
+    <h3 style="margin: 0 0 10px 0; color: #333;">Customer Statistics</h3>
+    <div style="display: flex; gap: 20px;">
+      <div style="background: white; padding: 10px; border-radius: 3px; border-left: 4px solid #28a745;">
+        <strong>Active Customers:</strong> {{ stats.active_customers }}
+      </div>
+      <div style="background: white; padding: 10px; border-radius: 3px; border-left: 4px solid #007bff;">
+        <strong>Completed Customers:</strong> {{ stats.completed_customers }}
+      </div>
+      <div style="background: white; padding: 10px; border-radius: 3px; border-left: 4px solid #ffc107;">
+        <strong>Hidden Customers:</strong> {{ stats.hidden_customers }}
+      </div>
+    </div>
+  </div>
+  {% endif %}
+  
+  <!-- Quick Filters -->
+  <div style="margin-bottom: 20px;">
+    <a href="?status=confirmed" class="button" style="background: #28a745; color: white; padding: 5px 10px; text-decoration: none; border-radius: 3px; margin-right: 5px;">
+      Active Customers
+    </a>
+    <a href="?status=completed" class="button" style="background: #007bff; color: white; padding: 5px 10px; text-decoration: none; border-radius: 3px; margin-right: 5px;">
+      Completed Customers
+    </a>
+    <a href="?hidden_by_owner=true" class="button" style="background: #ffc107; color: black; padding: 5px 10px; text-decoration: none; border-radius: 3px;">
+      Hidden Customers
+    </a>
+    <a href="" class="button" style="background: #6c757d; color: white; padding: 5px 10px; text-decoration: none; border-radius: 3px;">
+      All Customers
+    </a>
+  </div>
+{% endblock %}
+
+{% block result_list %}
+  {{ block.super }}
+  
+  <script>
+    // Add custom styling for checkout buttons
+    document.addEventListener('DOMContentLoaded', function() {
+      const checkoutButtons = document.querySelectorAll('a[href*="/checkout/"]');
+      checkoutButtons.forEach(button => {
+        button.addEventListener('click', function(e) {
+          if (!confirm('Are you sure you want to check out this customer?')) {
+            e.preventDefault();
+          }
+        });
+      });
+    });
+  </script>
+{% endblock %}

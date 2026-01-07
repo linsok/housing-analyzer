@@ -112,12 +112,27 @@ const OwnerBookings = () => {
   const handleCompleteBooking = async (bookingId) => {
     setActionLoading(true);
     try {
-      await bookingService.completeBooking(bookingId);
+      console.log('Attempting to complete booking:', bookingId);
+      const response = await bookingService.completeBooking(bookingId);
+      console.log('Complete booking response:', response);
       toast.success('Booking marked as completed');
       loadBookings();
     } catch (error) {
       console.error('Error completing booking:', error);
-      toast.error('Failed to complete booking');
+      console.error('Error response:', error.response);
+      console.error('Error status:', error.response?.status);
+      console.error('Error data:', error.response?.data);
+      
+      let errorMessage = 'Failed to complete booking';
+      if (error.response?.status === 401) {
+        errorMessage = 'Authentication error. Please log in again.';
+      } else if (error.response?.status === 403) {
+        errorMessage = 'Permission denied. You do not have access.';
+      } else if (error.response?.data?.detail) {
+        errorMessage = error.response.data.detail;
+      }
+      
+      toast.error(errorMessage);
     } finally {
       setActionLoading(false);
     }

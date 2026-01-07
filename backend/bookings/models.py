@@ -18,6 +18,7 @@ class Booking(models.Model):
         ('pending_review', 'Pending Review'),
         ('confirmed', 'Confirmed'),
         ('completed', 'Completed'),
+        ('checked_out', 'Checked Out'),
         ('cancelled', 'Cancelled'),
         ('rejected', 'Rejected'),
     )
@@ -60,6 +61,9 @@ class Booking(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     confirmed_at = models.DateTimeField(null=True, blank=True)
+    completed_at = models.DateTimeField(null=True, blank=True)
+    checked_out_at = models.DateTimeField(null=True, blank=True, help_text="When customer actually checked out (different from mark complete)")
+    hidden_by_owner = models.BooleanField(default=False, help_text="Whether this booking is hidden from property owner view")
     
     class Meta:
         ordering = ['-created_at']

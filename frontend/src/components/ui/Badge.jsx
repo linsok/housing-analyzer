@@ -8,6 +8,7 @@ const Badge = ({ children, variant = 'default', className }) => {
     error: 'bg-red-100 text-red-800',
     info: 'bg-blue-100 text-blue-800',
     primary: 'bg-primary-100 text-primary-800',
+    secondary: 'bg-gray-200 text-gray-700',
   };
 
   return (

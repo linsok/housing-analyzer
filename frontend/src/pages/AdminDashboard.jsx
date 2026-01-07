@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
-import { Users, Home, Calendar, AlertTriangle, CheckCircle, XCircle, DollarSign, TrendingUp, Activity, Eye, Star, BarChart3 } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { Users, Home, Calendar, AlertTriangle, CheckCircle, XCircle, DollarSign, TrendingUp, Activity, Eye, Star, BarChart3, Users as UsersIcon } from 'lucide-react';
 import Card from '../components/ui/Card';
 import Badge from '../components/ui/Badge';
 import Button from '../components/ui/Button';
@@ -104,6 +105,16 @@ const AdminDashboard = () => {
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-900">Admin Dashboard</h1>
           <p className="text-gray-600 mt-2">Platform overview and management</p>
+        </div>
+
+        {/* Navigation */}
+        <div className="flex space-x-4 mb-8">
+          <Link to="/admin/customers">
+            <Button variant="outline" className="flex items-center">
+              <UsersIcon className="w-5 h-5 mr-2" />
+              Customer Management
+            </Button>
+          </Link>
         </div>
 
         {/* Stats Overview */}

@@ -5,6 +5,7 @@ from django.utils import timezone
 from django.db.models import Q
 from .models import Booking, Message
 from .serializers import BookingSerializer, MessageSerializer
+import pytz
 
 
 class BookingViewSet(viewsets.ModelViewSet):
@@ -15,19 +16,57 @@ class BookingViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         user = self.request.user
         
+        print(f"=== GET_QUERYSET DEBUG ===")
+        print(f"User: {user}")
+        print(f"User role: {user.role}")
+        print(f"Query params: {self.request.query_params}")
+        
         # Start with base queryset based on user role
         if user.role == 'admin':
             queryset = Booking.objects.all()
         elif user.role == 'owner':
-            queryset = Booking.objects.filter(property__owner=user)
+            # Owners can see their bookings, but exclude ones they've hidden
+            queryset = Booking.objects.filter(property__owner=user, hidden_by_owner=False)
         else:  # renter
             queryset = Booking.objects.filter(renter=user)
+        
+        print(f"Base queryset count: {queryset.count()}")
         
         # Filter by booking_type if provided in query params
         booking_type = self.request.query_params.get('booking_type')
         if booking_type:
             queryset = queryset.filter(booking_type=booking_type)
+            print(f"After booking_type filter ({booking_type}): {queryset.count()}")
         
+        # Filter by status if provided in query params
+        status = self.request.query_params.get('status')
+        status_in = self.request.query_params.get('status__in')
+        
+        if status:
+            queryset = queryset.filter(status=status)
+            print(f"After status filter ({status}): {queryset.count()}")
+        elif status_in:
+            # Handle multiple status values (e.g., status__in=confirmed,completed)
+            status_list = status_in.split(',')
+            queryset = queryset.filter(status__in=status_list)
+            print(f"After status__in filter ({status_in}): {queryset.count()}")
+        
+        # Filter by hidden_by_owner if provided (admin only)
+        hidden_by_owner = self.request.query_params.get('hidden_by_owner')
+        if hidden_by_owner and user.role == 'admin':
+            queryset = queryset.filter(hidden_by_owner=hidden_by_owner.lower() == 'true')
+            print(f"After hidden_by_owner filter ({hidden_by_owner}): {queryset.count()}")
+        
+        # Filter by checked_out_at if provided (for customer history)
+        checked_out_at_isnull = self.request.query_params.get('checked_out_at__isnull')
+        if checked_out_at_isnull is not None:
+            if checked_out_at_isnull.lower() == 'true':
+                queryset = queryset.filter(checked_out_at__isnull=True)
+            elif checked_out_at_isnull.lower() == 'false':
+                queryset = queryset.filter(checked_out_at__isnull=False)
+            print(f"After checked_out_at filter ({checked_out_at_isnull}): {queryset.count()}")
+        
+        print(f"Final queryset count: {queryset.count()}")
         return queryset
     
     @action(detail=False, methods=['post'])
@@ -212,8 +251,189 @@ class BookingViewSet(viewsets.ModelViewSet):
         return Response(serializer.data)
     
     @action(detail=True, methods=['post'])
+    def hide_from_owner(self, request, pk=None):
+        """
+        Hide booking from owner view (soft delete for owners)
+        The record remains in database for admin purposes
+        """
+        try:
+            print(f"=== HIDE FROM OWNER DEBUG ===")
+            print(f"User: {request.user}")
+            print(f"User role: {request.user.role}")
+            
+            booking = self.get_object()
+            print(f"Booking to hide: {booking.id}")
+            print(f"Booking property: {booking.property.title}")
+            print(f"Booking property owner: {booking.property.owner}")
+            print(f"Booking status: {booking.status}")
+            
+            # Check if user has permission to hide this booking
+            if request.user.role == 'owner' and booking.property.owner != request.user:
+                print("Permission denied: Owner trying to hide booking they don't own")
+                return Response(
+                    {'error': 'You can only hide bookings for your own properties'},
+                    status=status.HTTP_403_FORBIDDEN
+                )
+            
+            # Only allow hiding completed bookings
+            if booking.status != 'completed':
+                return Response(
+                    {'error': 'You can only hide completed bookings from customer history'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            
+            # Soft delete - mark as hidden
+            booking.hidden_by_owner = True
+            booking.save()
+            
+            print(f"Booking {booking.id} hidden from owner view")
+            
+            return Response({
+                'message': 'Customer history record hidden successfully',
+                'booking_id': booking.id
+            })
+            
+        except Exception as e:
+            print(f"Hide error: {str(e)}")
+            import traceback
+            traceback.print_exc()
+            return Response(
+                {'error': f'Failed to hide booking: {str(e)}'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+    @action(detail=True, methods=['patch'])
+    def restore_hidden(self, request, pk=None):
+        """
+        Restore a hidden booking back to owner view (admin only)
+        """
+        try:
+            print(f"=== RESTORE HIDDEN DEBUG ===")
+            print(f"User: {request.user}")
+            print(f"User role: {request.user.role}")
+            
+            # Only admin users can restore hidden bookings
+            if request.user.role != 'admin':
+                return Response(
+                    {'error': 'Only admin users can restore hidden bookings'},
+                    status=status.HTTP_403_FORBIDDEN
+                )
+            
+            booking = self.get_object()
+            print(f"Booking to restore: {booking.id}")
+            print(f"Booking property: {booking.property.title}")
+            print(f"Current hidden_by_owner: {booking.hidden_by_owner}")
+            
+            if not booking.hidden_by_owner:
+                return Response(
+                    {'error': 'This booking is not hidden'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            
+            # Restore booking
+            booking.hidden_by_owner = False
+            booking.save()
+            
+            print(f"Booking {booking.id} restored to owner view")
+            
+            return Response({
+                'message': 'Customer record restored successfully',
+                'booking_id': booking.id
+            })
+            
+        except Exception as e:
+            print(f"Restore error: {str(e)}")
+            import traceback
+            traceback.print_exc()
+            return Response(
+                {'error': f'Failed to restore booking: {str(e)}'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+    def destroy(self, request, *args, **kwargs):
+        """
+        Override delete method to add debugging and proper handling
+        """
+        try:
+            print(f"=== DELETE DEBUG ===")
+            print(f"User: {request.user}")
+            print(f"User role: {request.user.role}")
+            
+            instance = self.get_object()
+            print(f"Booking to delete: {instance.id}")
+            print(f"Booking property: {instance.property.title}")
+            print(f"Booking property owner: {instance.property.owner}")
+            print(f"Booking status: {instance.status}")
+            
+            # Check if user has permission to delete this booking
+            if request.user.role == 'owner' and instance.property.owner != request.user:
+                print("Permission denied: Owner trying to delete booking they don't own")
+                return Response(
+                    {'error': 'You can only delete bookings for your own properties'},
+                    status=status.HTTP_403_FORBIDDEN
+                )
+            
+            # Check for related records
+            messages_count = instance.messages.count()
+            payments_count = instance.payments.count() if hasattr(instance, 'payments') else 0
+            print(f"Related messages: {messages_count}")
+            print(f"Related payments: {payments_count}")
+            
+            # Perform deletion
+            result = super().destroy(request, *args, **kwargs)
+            print(f"Deletion successful: {result.status_code if hasattr(result, 'status_code') else 'No status'}")
+            
+            return result
+            
+        except Exception as e:
+            print(f"Delete error: {str(e)}")
+            import traceback
+            traceback.print_exc()
+            return Response(
+                {'error': f'Failed to delete booking: {str(e)}'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+    @action(detail=True, methods=['post'])
+    def checkout(self, request, pk=None):
+        """Check out a rental customer (different from mark complete)"""
+        print("\n=== Starting checkout action ===")  # Debug log
+        booking = self.get_object()
+        print(f"Booking ID: {booking.id}, Status: {booking.status}")  # Debug log
+        
+        if booking.property.owner != request.user:
+            return Response(
+                {'error': 'Only property owner can check out customers'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
+        if booking.booking_type != 'rental':
+            return Response(
+                {'error': 'Only rental bookings can be checked out'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        booking.status = 'completed'
+        # Set checkout time in local timezone (Cambodia timezone)
+        cambodia_timezone = pytz.timezone('Asia/Phnom_Penh')
+        booking.completed_at = timezone.now().astimezone(cambodia_timezone)
+        booking.checked_out_at = timezone.now().astimezone(cambodia_timezone)
+        booking.save()
+        print(f"Booking checked out. New status: {booking.status}")  # Debug log
+        
+        # Send checkout email notification to renter
+        from utils.email_service import EmailService
+        print("About to send checkout notification...")  # Debug log
+        
+        email_sent = EmailService.send_checkout_notification(booking)
+        print(f"Checkout notification email sending {'succeeded' if email_sent else 'failed'}")  # Debug log
+        
+        serializer = self.get_serializer(booking)
+        return Response(serializer.data)
+
+    @action(detail=True, methods=['post'])
     def complete(self, request, pk=None):
-        """Mark booking as completed"""
+        """Mark booking as completed (but keep as confirmed for active customers)"""
         print("\n=== Starting complete action ===")  # Debug log
         booking = self.get_object()
         print(f"Booking ID: {booking.id}, Status: {booking.status}")  # Debug log
@@ -224,10 +444,17 @@ class BookingViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_403_FORBIDDEN
             )
         
+        # Mark as completed and change status to 'completed'
+        # Clear checked_out_at to ensure customer stays in active list until actually checked out
         booking.status = 'completed'
         booking.completed_at = timezone.now()
+        booking.checked_out_at = None  # Clear checkout timestamp
         booking.save()
         print(f"Booking marked as completed. New status: {booking.status}")  # Debug log
+        
+        # Force database commit to ensure save
+        from django.db import transaction
+        transaction.commit()
         
         # Send email notification to renter
         from utils.email_service import EmailService
@@ -238,11 +465,15 @@ class BookingViewSet(viewsets.ModelViewSet):
             email_sent = EmailService.send_visit_completion_notification(booking)
             print(f"Visit completion email sending {'succeeded' if email_sent else 'failed'}")  # Debug log
         else:
+            # For rental bookings, send booking completion notification
             email_sent = EmailService.send_booking_completion_notification(booking)
             print(f"Booking completion email sending {'succeeded' if email_sent else 'failed'}")  # Debug log
         
-        serializer = self.get_serializer(booking)
-        return Response(serializer.data)
+        return Response({
+            'message': 'Booking marked as completed successfully',
+            'booking_id': booking.id,
+            'status': booking.status  # Show that status remains 'confirmed'
+        })
 
     @action(detail=False, methods=['post'])
     def viewings(self, request):

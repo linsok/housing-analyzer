@@ -2,6 +2,7 @@ from django.core.mail import send_mail
 from django.template.loader import render_to_string
 from django.conf import settings
 import logging
+import pytz
 
 logger = logging.getLogger(__name__)
 
@@ -130,6 +131,117 @@ group05support@housinganalyzer.com
             logger.error(f"Failed to send booking completion email for booking {booking.id}: {str(e)}")
             return False
     
+    @staticmethod
+    def send_checkout_notification(booking):
+        """
+        Send email notification to renter when they check out from a rental property
+        
+        Args:
+            booking: Booking instance that was checked out
+            
+        Returns:
+            bool: True if email was sent successfully, False otherwise
+        """
+        logger.info(f"Starting to send checkout notification for booking {booking.id}")
+        try:
+            if not booking.renter or not booking.renter.email:
+                logger.error(f"Cannot send email: No renter or renter email for booking {booking.id}")
+                return False
+                
+            renter_email = booking.renter.email
+            owner_name = booking.property.owner.full_name or booking.property.owner.username
+            property_title = booking.property.title
+            property_address = booking.property.address
+            checkout_date = booking.completed_at
+            start_date = booking.start_date
+            
+            logger.debug(f"Preparing checkout email for booking {booking.id} to {renter_email}")
+            logger.debug(f"Property: {property_title}, Owner: {owner_name}, Checkout Date: {checkout_date}")
+            
+            # Email context
+            context = {
+                'renter_name': booking.renter.full_name or booking.renter.username,
+                'owner_name': owner_name,
+                'property_title': property_title,
+                'property_address': property_address,
+                'checkout_date': checkout_date,
+                'start_date': start_date,
+                'booking_id': booking.id,
+                'monthly_rent': booking.monthly_rent,
+                'owner_phone': booking.property.owner.phone,
+            }
+            
+            # Render email template
+            subject = f"Check Out Confirmation - {property_title}"
+            
+            # HTML email body (skip template if not found)
+            try:
+                html_message = render_to_string('emails/checkout_confirmation.html', context)
+            except:
+                html_message = None  # Fallback to plain text if template not found
+            
+            # Plain text email body (fallback)
+            text_message = f"""
+Dear {context['renter_name']},
+
+Thank you for staying at {property_title}! We hope you had a wonderful experience.
+
+Check Out Details:
+- Property: {property_title}
+- Address: {property_address}
+- Booking ID: {booking.id}
+- Move In Date: {start_date.strftime('%B %d, %Y') if start_date else 'N/A'}
+- Check Out Date: {checkout_date.strftime('%B %d, %Y at %I:%M %p') if checkout_date else 'N/A'}
+
+Property Owner Contact:
+- Name: {owner_name}
+- Phone: {booking.property.owner.phone if booking.property.owner.phone else 'Not provided'}
+
+Your rental period has been successfully completed. The property owner, {owner_name}, has processed your check out.
+
+We hope you enjoyed your stay and appreciate your business! If you're looking for a new place to rent, feel free to browse our platform again.
+
+If you have any questions about your check out or need assistance with future bookings, please don't hesitate to contact us.
+
+Thank you for choosing Housing Analyzer for your rental needs!
+
+Best regards,
+Housing Analyzer Team
+group05support@housinganalyzer.com
++855 97 756 9023
+            """.strip()
+            
+            # Check email settings
+            if not hasattr(settings, 'EMAIL_HOST') or not settings.EMAIL_HOST:
+                logger.error("Email settings not configured. Cannot send email.")
+                return False
+                
+            # Log email details (without sensitive data)
+            logger.info(f"Sending checkout email to: {renter_email}")
+            logger.debug(f"Email subject: {subject}")
+            
+            try:
+                # Send email with explicit credentials to avoid environment variable issues
+                send_mail(
+                    subject=subject,
+                    message=text_message,
+                    from_email=settings.DEFAULT_FROM_EMAIL,
+                    recipient_list=[renter_email],
+                    html_message=html_message,
+                    fail_silently=False,
+                    auth_user='thoeunsoklin1209@gmail.com',
+                    auth_password='ddlt mrnv fleo qoyy'
+                )
+                logger.info(f"Checkout notification email sent successfully to {renter_email} for booking {booking.id}")
+                return True
+            except Exception as send_error:
+                logger.error(f"Failed to send checkout email to {renter_email} for booking {booking.id}: {str(send_error)}", exc_info=True)
+                return False
+            
+        except Exception as e:
+            logger.error(f"Failed to send checkout email for booking {booking.id}: {str(e)}")
+            return False
+
     @staticmethod
     def send_visit_completion_notification(booking):
         """

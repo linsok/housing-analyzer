@@ -11,14 +11,22 @@ class BookingSerializer(serializers.ModelSerializer):
     class Meta:
         model = Booking
         fields = [
-            'id', 'property', 'property_details', 'renter', 'renter_details',
-            'booking_type', 'start_date', 'end_date', 'visit_time',
-            'monthly_rent', 'deposit_amount', 'total_amount', 'status',
-            'message', 'owner_notes', 'contact_phone', 'member_count',
-            'transaction_image', 'transaction_submitted_at',
-            'created_at', 'updated_at', 'confirmed_at'
+            'id', 'property', 'renter', 'booking_type', 'status', 'start_date', 'end_date',
+            'monthly_rent', 'deposit_amount', 'total_amount', 'message', 'owner_notes',
+            'contact_phone', 'member_count', 'transaction_image', 'transaction_submitted_at',
+            'bakong_md5_hash', 'payment_method', 'confirmed_at', 'completed_at',
+            'checked_out_at', 'hidden_by_owner', 'created_at', 'updated_at',
+            'property_details', 'renter_details'
         ]
-        read_only_fields = ['renter', 'status', 'owner_notes', 'confirmed_at']
+        read_only_fields = ['id', 'created_at', 'updated_at', 'renter', 'status', 'owner_notes', 'confirmed_at']
+    
+    def to_representation(self, instance):
+        """Override to ensure monthly_rent always shows property rent price"""
+        data = super().to_representation(instance)
+        # Always use property rent price for monthly_rent if booking monthly_rent is 0
+        if data.get('monthly_rent') == 0 and data.get('property_details', {}).get('rent_price'):
+            data['monthly_rent'] = data['property_details']['rent_price']
+        return data
     
     def create(self, validated_data):
         validated_data['renter'] = self.context['request'].user

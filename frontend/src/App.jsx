@@ -29,6 +29,8 @@ import PaymentPage from './pages/PaymentPage';
 import BookingConfirmation from './pages/BookingConfirmation';
 import RenterAnalysis from './pages/RenterAnalysis';
 import OwnerAnalysis from './pages/OwnerAnalysis';
+import OwnerCustomers from './pages/OwnerCustomers';
+import AdminCustomerManagement from './pages/AdminCustomerManagement';
 import { useAuthStore } from './store/useAuthStore';
 
 // Protected Route Component
@@ -207,6 +209,14 @@ function App() {
                   }
                 />
                 <Route
+                  path="/owner/customers"
+                  element={
+                    <ProtectedRoute allowedRoles={['owner']}>
+                      <OwnerCustomers />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
                   path="/owner/analysis"
                   element={
                     <ProtectedRoute allowedRoles={['owner']}>
@@ -229,6 +239,14 @@ function App() {
                   element={
                     <ProtectedRoute allowedRoles={['admin']}>
                       <AdminDashboard />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/admin/customers"
+                  element={
+                    <ProtectedRoute allowedRoles={['admin']}>
+                      <AdminCustomerManagement />
                     </ProtectedRoute>
                   }
                 />
