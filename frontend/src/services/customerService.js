@@ -66,13 +66,25 @@ export const customerService = {
     console.log('booking.monthly_rent:', booking.monthly_rent);
     console.log('booking.property_details?.rent_price:', booking.property_details?.rent_price);
     
-    const monthlyPayment = parseFloat(
-      booking.monthly_rent || 
-      booking.property_details?.rent_price || 
-      0
-    );
+    // More robust monthly payment calculation
+    let monthlyPayment = 0;
     
-    console.log('Calculated monthly_payment:', monthlyPayment);
+    // First try booking monthly_rent
+    if (booking.monthly_rent && booking.monthly_rent > 0) {
+      monthlyPayment = parseFloat(booking.monthly_rent);
+      console.log('Using booking.monthly_rent:', monthlyPayment);
+    }
+    // Then try property rent_price
+    else if (booking.property_details?.rent_price && booking.property_details.rent_price > 0) {
+      monthlyPayment = parseFloat(booking.property_details.rent_price);
+      console.log('Using property_details.rent_price:', monthlyPayment);
+    }
+    // Fallback to 0
+    else {
+      console.log('Both values are 0 or missing, using 0');
+    }
+    
+    console.log('Final monthly_payment:', monthlyPayment);
     
     const result = {
       id: booking.id,
