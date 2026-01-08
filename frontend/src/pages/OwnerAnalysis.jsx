@@ -18,10 +18,11 @@ const OwnerAnalysis = () => {
   const [loading, setLoading] = useState(true);
   const [selectedPeriod, setSelectedPeriod] = useState('6months');
   const [selectedMetric, setSelectedMetric] = useState('revenue');
+  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear().toString());
 
   useEffect(() => {
     loadAnalyticsData();
-  }, [selectedPeriod]);
+  }, [selectedPeriod, selectedYear]);
 
   const loadAnalyticsData = async () => {
     try {
@@ -46,6 +47,13 @@ const OwnerAnalysis = () => {
       setLoading(false);
     }
   };
+
+  // Generate year options (current year and 3 previous years)
+  const currentYear = new Date().getFullYear();
+  const yearOptions = [];
+  for (let i = currentYear; i >= currentYear - 3; i--) {
+    yearOptions.push(i.toString());
+  }
 
   if (loading) return <Loading />;
 
@@ -86,11 +94,13 @@ const OwnerAnalysis = () => {
     };
   });
 
-  // Process demand trends from all bookings
+  // Process demand trends from all bookings with year filtering
   const demandData = months.map(month => {
     const monthBookings = bookings.filter(b => {
-      const bookingMonth = new Date(b.created_at).toLocaleString('default', { month: 'short' });
-      return bookingMonth === month;
+      const bookingDate = new Date(b.created_at);
+      const bookingMonth = bookingDate.toLocaleString('default', { month: 'short' });
+      const bookingYear = bookingDate.getFullYear().toString();
+      return bookingMonth === month && bookingYear === selectedYear;
     });
     
     return {
@@ -102,7 +112,7 @@ const OwnerAnalysis = () => {
     };
   });
 
-  // Process tenant satisfaction (mock data for now)
+  // Process tenant satisfaction (mock data for now) with year filtering
   const satisfactionData = months.map(month => ({
     month,
     rating: 4.0 + Math.random() * 0.8,
@@ -110,9 +120,12 @@ const OwnerAnalysis = () => {
     feedback: Math.floor(Math.random() * 20) + 10
   }));
 
-  // Process property performance from real data
+  // Process property performance from real data with year filtering
   const propertyPerformance = properties.map(property => {
-    const propertyBookings = confirmedBookings.filter(b => b.property === property.id);
+    const propertyBookings = confirmedBookings.filter(b => {
+      const bookingYear = new Date(b.created_at).getFullYear().toString();
+      return b.property === property.id && bookingYear === selectedYear;
+    });
     const revenue = propertyBookings.reduce((sum, b) => sum + (b.total_amount || 0), 0);
     const occupancy = propertyBookings.length > 0 ? 100 : 0;
     
@@ -135,9 +148,12 @@ const OwnerAnalysis = () => {
     avg_rating: (satisfactionData.reduce((sum, s) => sum + s.rating, 0) / (satisfactionData.length || 1)).toFixed(1),
   };
 
-  // Enhanced market trends analysis
+  // Enhanced market trends analysis with year filtering
   const propertyBookingStats = properties.map(property => {
-    const propertyBookings = confirmedBookings.filter(b => b.property === property.id);
+    const propertyBookings = confirmedBookings.filter(b => {
+      const bookingYear = new Date(b.created_at).getFullYear().toString();
+      return b.property === property.id && bookingYear === selectedYear;
+    });
     return {
       id: property.id,
       title: property.title || 'Unknown Property',
@@ -167,11 +183,13 @@ const OwnerAnalysis = () => {
     properties[0] || { title: 'No properties', rent_price: 0 }
   );
 
-  // Monthly booking leaders (which property is most booked each month)
+  // Monthly booking leaders (which property is most booked each month) with year filtering
   const monthlyBookingLeaders = months.map(month => {
     const monthBookings = confirmedBookings.filter(b => {
-      const bookingMonth = new Date(b.created_at).toLocaleString('default', { month: 'short' });
-      return bookingMonth === month;
+      const bookingDate = new Date(b.created_at);
+      const bookingMonth = bookingDate.toLocaleString('default', { month: 'short' });
+      const bookingYear = bookingDate.getFullYear().toString();
+      return bookingMonth === month && bookingYear === selectedYear;
     });
 
     const propertyCounts = {};
@@ -215,6 +233,15 @@ const OwnerAnalysis = () => {
               <option value="6months">Last 6 Months</option>
               <option value="1year">Last Year</option>
               <option value="all">All Time</option>
+            </select>
+            <select
+              value={selectedYear}
+              onChange={(e) => setSelectedYear(e.target.value)}
+              className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+            >
+              {yearOptions.map(year => (
+                <option key={year} value={year}>{year}</option>
+              ))}
             </select>
             <Link to="/owner/dashboard">
               <Button variant="outline">Back to Dashboard</Button>
@@ -488,8 +515,8 @@ const OwnerAnalysis = () => {
 
           {/* Monthly Customer Bookings Chart */}
           <Card className="mb-8">
-            <h3 className="text-xl font-semibold mb-6">Monthly Customer Bookings</h3>
-            <p className="text-gray-600 mb-4">Number of customers who booked properties each month</p>
+            <h3 className="text-xl font-semibold mb-6">Monthly Customer Bookings - {selectedYear}</h3>
+            <p className="text-gray-600 mb-4">Number of customers who booked properties each month in {selectedYear}</p>
             <ResponsiveContainer width="100%" height={300}>
               <BarChart data={demandData}>
                 <CartesianGrid strokeDasharray="3 3" />
@@ -504,8 +531,8 @@ const OwnerAnalysis = () => {
 
           {/* Property Booking Summary */}
           <Card className="mb-8">
-            <h3 className="text-xl font-semibold mb-6">Property Booking Summary</h3>
-            <p className="text-gray-600 mb-4">Total number of customers who booked each property</p>
+            <h3 className="text-xl font-semibold mb-6">Property Booking Summary - {selectedYear}</h3>
+            <p className="text-gray-600 mb-4">Total number of customers who booked each property in {selectedYear}</p>
             <div className="overflow-x-auto">
               <table className="min-w-full divide-y divide-gray-200">
                 <thead className="bg-gray-50">
@@ -552,7 +579,7 @@ const OwnerAnalysis = () => {
 
           {/* Monthly Booking Leaders */}
           <Card className="mb-8">
-            <h3 className="text-xl font-semibold mb-6">Monthly Booking Leaders (Jan-Dec)</h3>
+            <h3 className="text-xl font-semibold mb-6">Monthly Booking Leaders - {selectedYear} (Jan-Dec)</h3>
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
               {monthlyBookingLeaders.map((leader, index) => (
                 <div key={index} className="p-4 bg-gray-50 rounded-lg border border-gray-200">
