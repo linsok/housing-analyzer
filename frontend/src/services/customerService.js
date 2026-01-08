@@ -8,6 +8,8 @@ export const customerService = {
         booking_type: 'rental',
         // Show both confirmed and completed customers in active list
         status__in: 'confirmed,completed',
+        // Exclude customers who have actually checked out
+        checked_out_at__isnull: 'true',
         // Add timestamp to prevent caching
         _t: Date.now()
       }
