@@ -28,6 +28,7 @@ import ManageViewBookings from './pages/ManageViewBookings';
 import PaymentPage from './pages/PaymentPage';
 import BookingConfirmation from './pages/BookingConfirmation';
 import RenterAnalysis from './pages/RenterAnalysis';
+import RenterRentalProperties from './pages/RenterRentalProperties';
 import OwnerAnalysis from './pages/OwnerAnalysis';
 import OwnerCustomers from './pages/OwnerCustomers';
 import AdminCustomerManagement from './pages/AdminCustomerManagement';
@@ -155,6 +156,14 @@ function App() {
                   element={
                     <ProtectedRoute allowedRoles={['renter']}>
                       <RenterAnalysis />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/renter/rental-properties"
+                  element={
+                    <ProtectedRoute allowedRoles={['renter']}>
+                      <RenterRentalProperties />
                     </ProtectedRoute>
                   }
                 />

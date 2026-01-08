@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Calendar, Heart, MessageSquare, CreditCard, TrendingUp, Phone, Clock, CheckCircle, XCircle } from 'lucide-react';
+import { Calendar, Heart, MessageSquare, CreditCard, TrendingUp, Phone, Clock, CheckCircle, XCircle, Home, History, Eye } from 'lucide-react';
 import Card from '../components/ui/Card';
 import Badge from '../components/ui/Badge';
 import Button from '../components/ui/Button';
@@ -109,6 +109,111 @@ const RenterDashboard = () => {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* My Rental Properties */}
+          <div className="lg:col-span-1">
+            <Card>
+              <h2 className="text-xl font-semibold mb-4">My Rental Properties</h2>
+              
+              {/* Current Rentals */}
+              <div className="mb-4">
+                <h3 className="text-sm font-medium text-gray-700 mb-2 flex items-center">
+                  <Home className="w-4 h-4 mr-1" />
+                  Current Rentals
+                </h3>
+                {bookings.filter(b => b.booking_type === 'rental' && (b.status === 'confirmed' || b.status === 'completed')).length === 0 ? (
+                  <p className="text-gray-600 text-sm">No current rentals</p>
+                ) : (
+                  <div className="space-y-2">
+                    {bookings
+                      .filter(b => b.booking_type === 'rental' && (b.status === 'confirmed' || b.status === 'completed'))
+                      .slice(0, 2)
+                      .map((booking) => (
+                        <div key={booking.id} className="border border-gray-200 rounded-lg p-3">
+                          <div className="flex items-start justify-between mb-2">
+                            <div className="flex-1">
+                              <h4 className="font-medium text-sm">{booking.property_details?.title}</h4>
+                              <p className="text-xs text-gray-600">{booking.property_details?.city}</p>
+                              <p className="text-xs text-gray-500">
+                                Moved in: {formatDate(booking.start_date)}
+                              </p>
+                            </div>
+                            <Badge variant="success" className="text-xs">Active</Badge>
+                          </div>
+                          <div className="flex items-center justify-between">
+                            <span className="text-sm font-semibold text-primary-600">
+                              {formatCurrency(booking.total_amount)}
+                            </span>
+                            <Link to={`/properties/${booking.property}`}>
+                              <Button variant="outline" size="sm" className="text-xs">
+                                <Eye className="w-3 h-3 mr-1" />
+                                View
+                              </Button>
+                            </Link>
+                          </div>
+                        </div>
+                      ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Rental History */}
+              <div>
+                <h3 className="text-sm font-medium text-gray-700 mb-2 flex items-center">
+                  <History className="w-4 h-4 mr-1" />
+                  Rental History
+                </h3>
+                {bookings.filter(b => b.booking_type === 'rental' && b.status !== 'confirmed' && b.status !== 'completed').length === 0 ? (
+                  <p className="text-gray-600 text-sm">No past rentals</p>
+                ) : (
+                  <div className="space-y-2">
+                    {bookings
+                      .filter(b => b.booking_type === 'rental' && b.status !== 'confirmed' && b.status !== 'completed')
+                      .slice(0, 2)
+                      .map((booking) => (
+                        <div key={booking.id} className="border border-gray-200 rounded-lg p-3 opacity-75">
+                          <div className="flex items-start justify-between mb-2">
+                            <div className="flex-1">
+                              <h4 className="font-medium text-sm">{booking.property_details?.title}</h4>
+                              <p className="text-xs text-gray-600">{booking.property_details?.city}</p>
+                              <p className="text-xs text-gray-500">
+                                {formatDate(booking.start_date)}
+                              </p>
+                            </div>
+                            <div className="flex items-center gap-1">
+                              {getStatusBadge(booking.status)}
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="text-xs"
+                                onClick={async () => {
+                                  if (confirm('Hide this rental from your history?')) {
+                                    console.log('Hide rental:', booking.id);
+                                  }
+                                }}
+                              >
+                                Hide
+                              </Button>
+                            </div>
+                          </div>
+                          <div className="flex items-center justify-between">
+                            <span className="text-sm font-semibold text-gray-600">
+                              {formatCurrency(booking.total_amount)}
+                            </span>
+                            <Link to={`/properties/${booking.property}`}>
+                              <Button variant="outline" size="sm" className="text-xs">
+                                <Eye className="w-3 h-3 mr-1" />
+                                View
+                              </Button>
+                            </Link>
+                          </div>
+                        </div>
+                      ))}
+                  </div>
+                )}
+              </div>
+            </Card>
+          </div>
+
           {/* Bookings */}
           <div className="lg:col-span-2">
             <Card>
@@ -251,6 +356,110 @@ const RenterDashboard = () => {
 
           {/* Sidebar */}
           <div className="space-y-6">
+            {/* My Rental Properties */}
+            <Card>
+              <h2 className="text-xl font-semibold mb-4">My Rental Properties</h2>
+              
+              {/* Current Rentals */}
+              <div className="mb-4">
+                <h3 className="text-sm font-medium text-gray-700 mb-2 flex items-center">
+                  <Home className="w-4 h-4 mr-1" />
+                  Current Rentals
+                </h3>
+                {bookings.filter(b => b.booking_type === 'rental' && (b.status === 'confirmed' || b.status === 'completed')).length === 0 ? (
+                  <p className="text-gray-600 text-sm">No current rentals</p>
+                ) : (
+                  <div className="space-y-2">
+                    {bookings
+                      .filter(b => b.booking_type === 'rental' && (b.status === 'confirmed' || b.status === 'completed'))
+                      .slice(0, 2)
+                      .map((booking) => (
+                        <div key={booking.id} className="border border-gray-200 rounded-lg p-3">
+                          <div className="flex items-start justify-between mb-2">
+                            <div className="flex-1">
+                              <h4 className="font-medium text-sm">{booking.property_details?.title}</h4>
+                              <p className="text-xs text-gray-600">{booking.property_details?.city}</p>
+                              <p className="text-xs text-gray-500">
+                                Moved in: {formatDate(booking.start_date)}
+                              </p>
+                            </div>
+                            <Badge variant="success" className="text-xs">Active</Badge>
+                          </div>
+                          <div className="flex items-center justify-between">
+                            <span className="text-sm font-semibold text-primary-600">
+                              {formatCurrency(booking.total_amount)}
+                            </span>
+                            <Link to={`/properties/${booking.property}`}>
+                              <Button variant="outline" size="sm" className="text-xs">
+                                <Eye className="w-3 h-3 mr-1" />
+                                View
+                              </Button>
+                            </Link>
+                          </div>
+                        </div>
+                      ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Rental History */}
+              <div>
+                <h3 className="text-sm font-medium text-gray-700 mb-2 flex items-center">
+                  <History className="w-4 h-4 mr-1" />
+                  Rental History
+                </h3>
+                {bookings.filter(b => b.booking_type === 'rental' && b.status !== 'confirmed' && b.status !== 'completed').length === 0 ? (
+                  <p className="text-gray-600 text-sm">No past rentals</p>
+                ) : (
+                  <div className="space-y-2">
+                    {bookings
+                      .filter(b => b.booking_type === 'rental' && b.status !== 'confirmed' && b.status !== 'completed')
+                      .slice(0, 2)
+                      .map((booking) => (
+                        <div key={booking.id} className="border border-gray-200 rounded-lg p-3 opacity-75">
+                          <div className="flex items-start justify-between mb-2">
+                            <div className="flex-1">
+                              <h4 className="font-medium text-sm">{booking.property_details?.title}</h4>
+                              <p className="text-xs text-gray-600">{booking.property_details?.city}</p>
+                              <p className="text-xs text-gray-500">
+                                {formatDate(booking.start_date)}
+                              </p>
+                            </div>
+                            <div className="flex items-center gap-1">
+                              {getStatusBadge(booking.status)}
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="text-xs"
+                                onClick={async () => {
+                                  if (confirm('Hide this rental from your history?')) {
+                                    // This would call a hide function - for now just log
+                                    console.log('Hide rental:', booking.id);
+                                  }
+                                }}
+                              >
+                                Hide
+                              </Button>
+                            </div>
+                          </div>
+                          <div className="flex items-center justify-between">
+                            <span className="text-sm font-semibold text-gray-600">
+                              {formatCurrency(booking.total_amount)}
+                            </span>
+                            <Link to={`/properties/${booking.property}`}>
+                              <Button variant="outline" size="sm" className="text-xs">
+                                <Eye className="w-3 h-3 mr-1" />
+                                View
+                              </Button>
+                            </Link>
+                          </div>
+                        </div>
+                      ))}
+                  </div>
+                )}
+              </div>
+            </Card>
+
             {/* Favorites */}
             <Card>
               <h2 className="text-xl font-semibold mb-4">Favorite Properties</h2>

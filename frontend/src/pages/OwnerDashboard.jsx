@@ -78,40 +78,40 @@ const OwnerDashboard = () => {
           </div>
         </div>
 
-        <div className="flex space-x-4 mb-8">
+        <div className="flex flex-wrap gap-2 mb-8">
           <Link to="/owner/bookings">
-            <Button variant="outline" className="flex items-center">
-              <Calendar className="w-5 h-5 mr-2" />
+            <Button variant="outline" size="sm" className="flex items-center px-3 py-2 text-sm">
+              <Calendar className="w-4 h-4 mr-1" />
               Manage Room Bookings
             </Button>
           </Link>
           <Link to="/owner/view-bookings">
-            <Button variant="outline" className="flex items-center">
-              <Clock className="w-5 h-5 mr-2" />
+            <Button variant="outline" size="sm" className="flex items-center px-3 py-2 text-sm">
+              <Clock className="w-4 h-4 mr-1" />
               Manage Room Visitings
             </Button>
           </Link>
           <Link to="/owner/properties">
-            <Button variant="outline" className="flex items-center">
-              <List className="w-5 h-5 mr-2" />
+            <Button variant="outline" size="sm" className="flex items-center px-3 py-2 text-sm">
+              <List className="w-4 h-4 mr-1" />
               Manage Properties
             </Button>
           </Link>
           <Link to="/owner/customers">
-            <Button variant="outline" className="flex items-center">
-              <Users className="w-5 h-5 mr-2" />
+            <Button variant="outline" size="sm" className="flex items-center px-3 py-2 text-sm">
+              <Users className="w-4 h-4 mr-1" />
               Customer Management
             </Button>
           </Link>
           <Link to="/owner/analysis">
-            <Button variant="outline" className="flex items-center">
-              <TrendingUp className="w-5 h-5 mr-2" />
+            <Button variant="outline" size="sm" className="flex items-center px-3 py-2 text-sm">
+              <TrendingUp className="w-4 h-4 mr-1" />
               View Analysis
             </Button>
           </Link>
           <Link to="/owner/properties/new">
-            <Button>
-              <Plus className="w-5 h-5 mr-2" />
+            <Button size="sm" className="flex items-center px-3 py-2 text-sm">
+              <Plus className="w-4 h-4 mr-1" />
               Add Property
             </Button>
           </Link>
@@ -126,11 +126,7 @@ const OwnerDashboard = () => {
               <div className="text-gray-600 text-sm">Total Properties</div>
             </Card>
 
-            <Card className="text-center">
-              <Eye className="w-8 h-8 text-blue-500 mx-auto mb-2" />
-              <div className="text-2xl font-bold">{analytics.overview.total_views}</div>
-              <div className="text-gray-600 text-sm">Total Views</div>
-            </Card>
+            
 
             <Card className="text-center">
               <Calendar className="w-8 h-8 text-green-500 mx-auto mb-2" />
@@ -215,11 +211,7 @@ const OwnerDashboard = () => {
                             </div>
                           </div>
 
-                          <div className="grid grid-cols-3 gap-4 text-sm text-gray-600 mb-3">
-                            <div>
-                              <Eye className="w-4 h-4 inline mr-1" />
-                              {property.view_count} views
-                            </div>
+                          <div className="grid grid-cols-2 gap-4 text-sm text-gray-600 mb-3">
                             <div>
                               <Heart className="w-4 h-4 inline mr-1" />
                               {property.favorite_count} favorites
@@ -249,7 +241,7 @@ const OwnerDashboard = () => {
                     <YAxis />
                     <Tooltip />
                     <Legend />
-                    <Bar dataKey="views" fill="#0ea5e9" name="Views" />
+                    
                     <Bar dataKey="bookings" fill="#10b981" name="Bookings" />
                   </BarChart>
                 </ResponsiveContainer>
@@ -337,28 +329,28 @@ const OwnerDashboard = () => {
 
             {/* Quick Actions */}
             <Card>
-              <h2 className="text-xl font-semibold mb-4">Quick Actions</h2>
-              <div className="space-y-2">
+              <h2 className="text-lg font-semibold mb-3">Quick Actions</h2>
+              <div className="space-y-1">
                 <Link to="/owner/customers">
-                  <Button variant="outline" className="w-full justify-start">
+                  <Button variant="outline" size="sm" className="w-full justify-start px-3 py-2 text-sm">
                     <Users className="w-4 h-4 mr-2" />
                     Customer Management
                   </Button>
                 </Link>
                 <Link to="/owner/properties/new">
-                  <Button variant="outline" className="w-full justify-start">
+                  <Button variant="outline" size="sm" className="w-full justify-start px-3 py-2 text-sm">
                     <Plus className="w-4 h-4 mr-2" />
                     Add New Property
                   </Button>
                 </Link>
                 <Link to="/owner/analytics">
-                  <Button variant="outline" className="w-full justify-start">
+                  <Button variant="outline" size="sm" className="w-full justify-start px-3 py-2 text-sm">
                     <TrendingUp className="w-4 h-4 mr-2" />
                     View Detailed Analytics
                   </Button>
                 </Link>
                 <Link to="/market-trend">
-                  <Button variant="outline" className="w-full justify-start">
+                  <Button variant="outline" size="sm" className="w-full justify-start px-3 py-2 text-sm">
                     <TrendingUp className="w-4 h-4 mr-2" />
                     View Market Trends
                   </Button>

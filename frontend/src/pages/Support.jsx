@@ -50,6 +50,25 @@ const Support = () => {
 
   const handleSubmit = (e) => {
     e.preventDefault();
+    
+    // Basic validation
+    if (!formData.name.trim()) {
+      alert('Please enter your name');
+      return;
+    }
+    if (!formData.email.trim()) {
+      alert('Please enter your email address');
+      return;
+    }
+    if (!formData.subject.trim()) {
+      alert('Please enter a subject');
+      return;
+    }
+    if (!formData.message.trim()) {
+      alert('Please enter your message');
+      return;
+    }
+    
     // Here you would typically send the form data to your backend
     console.log('Support request submitted:', formData);
     setSubmitted(true);
@@ -118,8 +137,8 @@ const Support = () => {
             <div className="w-16 h-16 bg-primary-100 rounded-full flex items-center justify-center mx-auto mb-4">
               <MessageCircle className="w-8 h-8 text-primary-600" />
             </div>
-            <h3 className="text-xl font-semibold mb-2">Live Chat</h3>
-            <p className="text-gray-600 mb-3">Chat with our team</p>
+            <h3 className="text-xl font-semibold mb-2">Available Time</h3>
+            <p className="text-gray-600 mb-3">Contact our team</p>
             <span className="text-primary-600 font-medium">
               Available 9AM - 6PM
             </span>
@@ -127,37 +146,6 @@ const Support = () => {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          {/* FAQ Section */}
-          <div>
-            <Card className="p-8">
-              <h2 className="text-2xl font-bold mb-6">Frequently Asked Questions</h2>
-              
-              <div className="space-y-4">
-                {faqs.map((faq, index) => (
-                  <div key={index} className="border-b border-gray-200 pb-4">
-                    <button
-                      className="w-full flex justify-between items-center text-left"
-                      onClick={() => toggleFaq(index)}
-                    >
-                      <span className="font-semibold text-gray-900">{faq.question}</span>
-                      {expandedFaq === index ? (
-                        <ChevronUp className="w-5 h-5 text-primary-600 flex-shrink-0" />
-                      ) : (
-                        <ChevronDown className="w-5 h-5 text-gray-400 flex-shrink-0" />
-                      )}
-                    </button>
-                    
-                    {expandedFaq === index && (
-                      <p className="mt-3 text-gray-600 leading-relaxed">
-                        {faq.answer}
-                      </p>
-                    )}
-                  </div>
-                ))}
-              </div>
-            </Card>
-          </div>
-
           {/* Contact Form */}
           <div>
             <Card className="p-8">
@@ -198,7 +186,7 @@ const Support = () => {
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
                     value={formData.email}
                     onChange={handleChange}
-                    placeholder="your.email@example.com"
+                    placeholder="yourname@gmail.com"
                   />
                 </div>
 
@@ -237,6 +225,36 @@ const Support = () => {
                   Send Message
                 </Button>
               </form>
+            </Card>
+          </div>
+
+          {/* FAQ Section */}
+          <div>
+            <Card className="p-8">
+              <h2 className="text-2xl font-bold mb-6">Frequently Asked Questions</h2>
+              <div className="space-y-4">
+                {faqs.map((faq, index) => (
+                  <div key={index} className="border-b border-gray-200 pb-4">
+                    <button
+                      className="w-full flex justify-between items-center text-left"
+                      onClick={() => toggleFaq(index)}
+                    >
+                      <span className="font-semibold text-gray-900">{faq.question}</span>
+                      {expandedFaq === index ? (
+                        <ChevronUp className="w-5 h-5 text-primary-600 flex-shrink-0" />
+                      ) : (
+                        <ChevronDown className="w-5 h-5 text-gray-400 flex-shrink-0" />
+                      )}
+                    </button>
+                    
+                    {expandedFaq === index && (
+                      <p className="mt-3 text-gray-600 leading-relaxed">
+                        {faq.answer}
+                      </p>
+                    )}
+                  </div>
+                ))}
+              </div>
             </Card>
           </div>
         </div>
