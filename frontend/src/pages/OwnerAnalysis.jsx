@@ -486,6 +486,70 @@ const OwnerAnalysis = () => {
             </Card>
           </div>
 
+          {/* Monthly Customer Bookings Chart */}
+          <Card className="mb-8">
+            <h3 className="text-xl font-semibold mb-6">Monthly Customer Bookings</h3>
+            <p className="text-gray-600 mb-4">Number of customers who booked properties each month</p>
+            <ResponsiveContainer width="100%" height={300}>
+              <BarChart data={demandData}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="month" />
+                <YAxis />
+                <Tooltip />
+                <Legend />
+                <Bar dataKey="bookings" fill="#3b82f6" name="Customer Bookings" />
+              </BarChart>
+            </ResponsiveContainer>
+          </Card>
+
+          {/* Property Booking Summary */}
+          <Card className="mb-8">
+            <h3 className="text-xl font-semibold mb-6">Property Booking Summary</h3>
+            <p className="text-gray-600 mb-4">Total number of customers who booked each property</p>
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Property Name
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Total Customers
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Revenue
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Monthly Rent
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {propertyBookingStats.map((property, index) => (
+                    <tr key={index} className="hover:bg-gray-50">
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="text-sm font-medium text-gray-900">
+                          {property.title}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <Badge variant="info">
+                          {property.bookings} customers
+                        </Badge>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        {formatCurrency(property.revenue)}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        {formatCurrency(property.rentPrice)}/mo
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </Card>
+
           {/* Monthly Booking Leaders */}
           <Card className="mb-8">
             <h3 className="text-xl font-semibold mb-6">Monthly Booking Leaders (Jan-Dec)</h3>
