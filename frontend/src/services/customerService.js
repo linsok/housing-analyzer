@@ -61,7 +61,20 @@ export const customerService = {
 
   // Transform booking data to customer format
   transformBookingToCustomer(booking) {
-    return {
+    console.log('=== TRANSFORM BOOKING DEBUG ===');
+    console.log('Input booking:', booking);
+    console.log('booking.monthly_rent:', booking.monthly_rent);
+    console.log('booking.property_details?.rent_price:', booking.property_details?.rent_price);
+    
+    const monthlyPayment = parseFloat(
+      booking.monthly_rent || 
+      booking.property_details?.rent_price || 
+      0
+    );
+    
+    console.log('Calculated monthly_payment:', monthlyPayment);
+    
+    const result = {
       id: booking.id,
       renter_name: booking.renter_details?.full_name || booking.renter_details?.username || 'Unknown',
       email: booking.renter_details?.email || 'N/A',
@@ -69,16 +82,16 @@ export const customerService = {
       move_in_date: booking.start_date || booking.confirmed_at,
       property_name: booking.property_details?.title || 'Unknown Property',
       // Get monthly payment from multiple sources with fallback
-      monthly_payment: parseFloat(
-        booking.monthly_rent || 
-        booking.property_details?.rent_price || 
-        booking.property_details?.monthly_rent || 
-        0
-      ),
+      monthly_payment: monthlyPayment,
       status: booking.status === 'confirmed' ? 'still living' : 
                booking.status === 'completed' ? 'still living' : booking.status,
       check_out_date: booking.completed_at || booking.updated_at || booking.end_date,
       booking_id: booking.id
     };
+    
+    console.log('Transform result:', result);
+    console.log('=== END TRANSFORM DEBUG ===');
+    
+    return result;
   }
 };
