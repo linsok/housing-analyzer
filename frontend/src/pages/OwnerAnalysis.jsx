@@ -446,7 +446,7 @@ const OwnerAnalysis = () => {
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center">
                         <Star className="w-4 h-4 text-yellow-400 mr-1" />
-                        <span className="text-sm text-gray-900">{property.rating}</span>
+                        <span className="text-sm text-gray-900">{parseFloat(property.rating || 0).toFixed(1)}</span>
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
@@ -524,7 +524,7 @@ const OwnerAnalysis = () => {
                     </div>
                     <div className="flex items-center">
                       <Star className="w-4 h-4 text-yellow-400 mr-1" />
-                      <span className="font-semibold">{property.rating.toFixed(1)}</span>
+                      <span className="font-semibold">{parseFloat(property.rating || 0).toFixed(1)}</span>
                     </div>
                   </div>
                 ))}
