@@ -23,9 +23,24 @@ class BookingSerializer(serializers.ModelSerializer):
     def to_representation(self, instance):
         """Override to ensure monthly_rent always shows property rent price"""
         data = super().to_representation(instance)
-        # Always use property rent price for monthly_rent if booking monthly_rent is 0
-        if data.get('monthly_rent') == 0 and data.get('property_details', {}).get('rent_price'):
-            data['monthly_rent'] = data['property_details']['rent_price']
+        
+        # Debug logging
+        print(f"=== SERIALIZER DEBUG ===")
+        print(f"Booking ID: {instance.id}")
+        print(f"Original monthly_rent: {data.get('monthly_rent')}")
+        print(f"Property rent_price: {data.get('property_details', {}).get('rent_price')}")
+        
+        # Always use property rent price for monthly_rent if booking monthly_rent is 0 or falsy
+        monthly_rent = data.get('monthly_rent')
+        property_rent_price = data.get('property_details', {}).get('rent_price')
+        
+        if not monthly_rent and property_rent_price:
+            data['monthly_rent'] = property_rent_price
+            print(f"Updated monthly_rent to: {data['monthly_rent']}")
+        else:
+            print(f"Keeping monthly_rent as: {monthly_rent}")
+        
+        print(f"=== END SERIALIZER DEBUG ===")
         return data
     
     def create(self, validated_data):
