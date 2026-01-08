@@ -420,9 +420,6 @@ const OwnerAnalysis = () => {
                     Rating
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Views
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Status
                   </th>
                 </tr>
@@ -448,9 +445,6 @@ const OwnerAnalysis = () => {
                         <Star className="w-4 h-4 text-yellow-400 mr-1" />
                         <span className="text-sm text-gray-900">{parseFloat(property.rating || 0).toFixed(1)}</span>
                       </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {property.views.toLocaleString()}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <Badge variant="success">Performing Well</Badge>
