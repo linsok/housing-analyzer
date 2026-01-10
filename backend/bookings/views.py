@@ -413,7 +413,7 @@ class BookingViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST
             )
         
-        booking.status = 'completed'
+        booking.status = 'checked_out'
         # Set checkout time in local timezone (Cambodia timezone)
         cambodia_timezone = pytz.timezone('Asia/Phnom_Penh')
         booking.completed_at = timezone.now().astimezone(cambodia_timezone)

@@ -76,9 +76,36 @@ const RenterRentalProperties = () => {
     }
   };
 
+  const handleCheckout = async (bookingId) => {
+    if (confirm('Are you sure you want to check out from this property?')) {
+      try {
+        // Call the checkout API
+        const response = await fetch(`/api/bookings/renter/bookings/${bookingId}/checkout/`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${localStorage.getItem('accessToken')}`,
+          },
+        });
+        
+        if (response.ok) {
+          // Refresh the bookings list
+          await loadRentalProperties();
+          alert('Successfully checked out!');
+        } else {
+          const error = await response.json();
+          alert(`Error: ${error.error || 'Failed to check out'}`);
+        }
+      } catch (error) {
+        console.error('Error checking out:', error);
+        alert('Failed to check out. Please try again.');
+      }
+    }
+  };
+
   // Separate current and historical rentals
   const currentRentals = bookings.filter(b => b.status === 'confirmed' || b.status === 'completed');
-  const historicalRentals = bookings.filter(b => b.status !== 'confirmed' && b.status !== 'completed');
+  const historicalRentals = bookings.filter(b => b.status === 'checked_out' || b.status === 'cancelled' || b.status === 'rejected');
 
   if (loading) return <Loading />;
 
@@ -225,6 +252,7 @@ const RenterRentalProperties = () => {
                             View Property
                           </Button>
                         </Link>
+                        
                       </div>
                     </div>
                   </Card>
@@ -269,14 +297,7 @@ const RenterRentalProperties = () => {
                         </div>
                         <div className="flex items-center gap-2">
                           {getStatusBadge(booking.status)}
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleHideProperty(booking.id)}
-                            className="text-xs"
-                          >
-                            Hide
-                          </Button>
+                          
                         </div>
                       </div>
 

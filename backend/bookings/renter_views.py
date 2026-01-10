@@ -60,3 +60,24 @@ class RenterDashboardViewSet(viewsets.ViewSet):
             'phone': booking.property.owner.phone,
             'email': booking.property.owner.email
         })
+
+    @action(detail=True, methods=['post'])
+    def checkout(self, request, pk=None):
+        """Renter checks out from a rental property"""
+        booking = get_object_or_404(
+            Booking,
+            id=pk,
+            renter=request.user,
+            booking_type='rental',
+            status__in=['confirmed', 'completed']  # Can only checkout from active rentals
+        )
+        
+        # Set status to checked_out
+        booking.status = 'checked_out'
+        booking.checked_out_at = timezone.now()
+        booking.save()
+        
+        return Response({
+            'status': 'Successfully checked out',
+            'booking_status': booking.status
+        })
