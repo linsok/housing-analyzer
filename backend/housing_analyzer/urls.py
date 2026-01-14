@@ -153,7 +153,39 @@ def debug_media(request):
         return JsonResponse({'error': str(e)})
 
 @csrf_exempt
-def upload_sample_images(request):
+def test_media(request):
+    """Simple test to check if media files are accessible"""
+    try:
+        from django.conf import settings
+        import os
+        
+        # Check if media directory exists
+        media_root = settings.MEDIA_ROOT
+        media_exists = os.path.exists(media_root)
+        
+        # List files in media directory
+        media_files = []
+        if media_exists:
+            for root, dirs, files in os.walk(media_root):
+                for file in files:
+                    if file.endswith(('.jpg', '.jpeg', '.png', '.gif')):
+                        rel_path = os.path.relpath(file, media_root)
+                        full_url = f"https://web-production-6f713.up.railway.app/media/{rel_path}"
+                        media_files.append({
+                            'filename': file,
+                            'relative_path': rel_path,
+                            'full_url': full_url,
+                            'exists': True
+                        })
+        
+        return JsonResponse({
+            'media_root': str(media_root),
+            'media_url': settings.MEDIA_URL,
+            'media_exists': media_exists,
+            'media_files': media_files[:10]  # Limit to first 10 files
+        })
+    except Exception as e:
+        return JsonResponse({'error': str(e)})
     """Upload sample property images for testing"""
     try:
         from django.core.files.base import ContentFile
@@ -219,6 +251,7 @@ urlpatterns = [
     path('check-users/', check_users, name='check_users'),
     path('debug-auth/', debug_auth, name='debug_auth'),
     path('debug-media/', debug_media, name='debug_media'),
+    path('test-media/', test_media, name='test_media'),
     path('upload-sample-images/', upload_sample_images, name='upload_sample_images'),
     path('admin/', admin.site.urls),
     path('api/auth/', include('users.urls')),
