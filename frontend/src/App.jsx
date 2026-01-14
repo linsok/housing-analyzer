@@ -95,175 +95,103 @@ function App() {
           </Layout>
         } />
 
-        {/* Routes with Layout */}
+        {/* Protected Routes with Layout */}
         <Route
           path="/*"
           element={
-            <Layout>
-              <Routes>
-                {/* Removed duplicate /properties route */}
-                <Route path="/" element={<Home />} />
-                <Route path="/properties" element={<Properties />} />
-                <Route path="/market-trend" element={<MarketTrend />} />
-                <Route path="/about" element={<AboutUs />} />
-                <Route path="/support" element={<Support />} />
-                
-                {/* Profile Route - Protected */}
-                <Route
-                  path="/profile"
-                  element={
-                    <ProtectedRoute>
-                      <Profile />
-                    </ProtectedRoute>
-                  }
-                />
+            <ProtectedRoute>
+              <Layout>
+                <Routes>
+                  <Route path="/" element={<Home />} />
+                  <Route path="/market-trend" element={<MarketTrend />} />
+                  <Route path="/about" element={<AboutUs />} />
+                  <Route path="/support" element={<Support />} />
+                  
+                  {/* Profile Route - Protected */}
+                  <Route
+                    path="/profile"
+                    element={<Profile />}
+                  />
 
-                {/* Renter Routes */}
-                <Route
-                  path="/renter/dashboard"
-                  element={
-                    <ProtectedRoute allowedRoles={['renter']}>
-                      <RenterDashboardEnhanced />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/renter/room-bookings"
-                  element={
-                    <ProtectedRoute allowedRoles={['renter']}>
-                      <MyRoomBookings />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/renter/visit-bookings"
-                  element={
-                    <ProtectedRoute allowedRoles={['renter']}>
-                      <MyVisitBookings />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/favorites"
-                  element={
-                    <ProtectedRoute allowedRoles={['renter']}>
-                      <Favorites />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/renter/analysis"
-                  element={
-                    <ProtectedRoute allowedRoles={['renter']}>
-                      <RenterAnalysis />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/renter/rental-properties"
-                  element={
-                    <ProtectedRoute allowedRoles={['renter']}>
-                      <RenterRentalProperties />
-                    </ProtectedRoute>
-                  }
-                />
+                  {/* Renter Routes */}
+                  <Route
+                    path="/renter/dashboard"
+                    element={<RenterDashboardEnhanced />}
+                  />
+                  <Route
+                    path="/renter/room-bookings"
+                    element={<MyRoomBookings />}
+                  />
+                  <Route
+                    path="/renter/visit-bookings"
+                    element={<MyVisitBookings />}
+                  />
+                  <Route
+                    path="/favorites"
+                    element={<Favorites />}
+                  />
+                  <Route
+                    path="/renter/analysis"
+                    element={<RenterAnalysis />}
+                  />
+                  <Route
+                    path="/renter/rental-properties"
+                    element={<RenterRentalProperties />}
+                  />
 
-                {/* Owner Routes */}
-                <Route
-                  path="/owner/dashboard"
-                  element={
-                    <ProtectedRoute allowedRoles={['owner']}>
-                      <OwnerDashboard />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/owner/properties/new"
-                  element={
-                    <ProtectedRoute allowedRoles={['owner']}>
-                      <AddProperty />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/owner/analytics"
-                  element={
-                    <ProtectedRoute allowedRoles={['owner']}>
-                      <OwnerAnalytics />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/owner/properties"
-                  element={
-                    <ProtectedRoute allowedRoles={['owner']}>
-                      <OwnerProperties />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/owner/bookings"
-                  element={
-                    <ProtectedRoute allowedRoles={['owner']}>
-                      <OwnerBookings />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/owner/view-bookings"
-                  element={
-                    <ProtectedRoute allowedRoles={['owner']}>
-                      <ManageViewBookings />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/owner/customers"
-                  element={
-                    <ProtectedRoute allowedRoles={['owner']}>
-                      <OwnerCustomers />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/owner/analysis"
-                  element={
-                    <ProtectedRoute allowedRoles={['owner']}>
-                      <OwnerAnalysis />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/edit-property/:id"
-                  element={
-                    <ProtectedRoute allowedRoles={['owner']}>
-                      <AddProperty editMode={true} />
-                    </ProtectedRoute>
-                  }
-                />
+                  {/* Owner Routes */}
+                  <Route
+                    path="/owner/dashboard"
+                    element={<OwnerDashboard />}
+                  />
+                  <Route
+                    path="/owner/properties/new"
+                    element={<AddProperty />}
+                  />
+                  <Route
+                    path="/owner/analytics"
+                    element={<OwnerAnalytics />}
+                  />
+                  <Route
+                    path="/owner/properties"
+                    element={<OwnerProperties />}
+                  />
+                  <Route
+                    path="/owner/bookings"
+                    element={<OwnerBookings />}
+                  />
+                  <Route
+                    path="/owner/view-bookings"
+                    element={<ManageViewBookings />}
+                  />
+                  <Route
+                    path="/owner/customers"
+                    element={<OwnerCustomers />}
+                  />
+                  <Route
+                    path="/owner/analysis"
+                    element={<OwnerAnalysis />}
+                  />
+                  <Route
+                    path="/edit-property/:id"
+                    element={<AddProperty editMode={true} />}
+                  />
 
-                {/* Admin Routes */}
-                <Route
-                  path="/admin/dashboard"
-                  element={
-                    <ProtectedRoute allowedRoles={['admin']}>
-                      <AdminDashboard />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/admin/customers"
-                  element={
-                    <ProtectedRoute allowedRoles={['admin']}>
-                      <AdminCustomerManagement />
-                    </ProtectedRoute>
-                  }
-                />
+                  {/* Admin Routes */}
+                  <Route
+                    path="/admin/dashboard"
+                    element={<AdminDashboard />}
+                  />
+                  <Route
+                    path="/admin/customers"
+                    element={<AdminCustomerManagement />}
+                  />
 
-                {/* Catch all */}
-                <Route path="*" element={<Navigate to="/" replace />} />
-              </Routes>
-            </Layout>
+                  {/* Catch all */}
+                  <Route path="*" element={<Navigate to="/" replace />} />
+                </Routes>
+              </Layout>
+            </ProtectedRoute>
           }
         />
       </Routes>
