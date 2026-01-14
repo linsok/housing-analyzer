@@ -87,9 +87,23 @@ import os
 
 if os.getenv('RAILWAY_ENVIRONMENT') or os.getenv('RAILWAY_PUBLIC_DOMAIN'):
     # Railway MySQL Database Configuration
-    DATABASES = {
-        'default': dj_database_url.parse(os.getenv('MYSQL_URL') or os.getenv('DATABASE_URL'))
-    }
+    database_url = os.getenv('MYSQL_URL') or os.getenv('DATABASE_URL')
+    if database_url:
+        DATABASES = {
+            'default': dj_database_url.parse(database_url)
+        }
+    else:
+        # Fallback configuration
+        DATABASES = {
+            'default': {
+                'ENGINE': 'django.db.backends.mysql',
+                'NAME': os.getenv('MYSQL_DATABASE', 'railway'),
+                'USER': os.getenv('MYSQL_USER', 'root'),
+                'PASSWORD': os.getenv('MYSQL_PASSWORD', ''),
+                'HOST': os.getenv('MYSQLHOST', 'mysql.railway.internal'),
+                'PORT': os.getenv('MYSQLPORT', '3306'),
+            }
+        }
 else:
     # Local MySQL Database Configuration (for development)
     DATABASES = {
