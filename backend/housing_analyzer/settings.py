@@ -185,7 +185,7 @@ STATICFILES_DIRS = [
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
 # Media files
-MEDIA_URL = 'media/'
+MEDIA_URL = 'https://web-production-6f713.up.railway.app/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
 
 # Default primary key field type
