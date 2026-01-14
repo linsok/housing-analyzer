@@ -113,12 +113,52 @@ def debug_auth(request):
     except Exception as e:
         return JsonResponse({'error': str(e)})
 
+@csrf_exempt
+def debug_media(request):
+    try:
+        from django.conf import settings
+        import os
+        from properties.models import PropertyImage
+        
+        media_root = settings.MEDIA_ROOT
+        media_url = settings.MEDIA_URL
+        
+        # Check if media directory exists
+        media_exists = os.path.exists(media_root)
+        
+        # Get all property images
+        images = PropertyImage.objects.all()
+        image_list = []
+        
+        for img in images:
+            img_path = os.path.join(media_root, img.image.name) if img.image else None
+            file_exists = os.path.exists(img_path) if img_path else False
+            
+            image_list.append({
+                'id': img.id,
+                'property': img.property.title,
+                'filename': img.image.name if img.image else None,
+                'full_path': img_path,
+                'file_exists': file_exists,
+                'url': img.image.url if img.image else None
+            })
+        
+        return JsonResponse({
+            'media_root': media_root,
+            'media_url': media_url,
+            'media_directory_exists': media_exists,
+            'images': image_list
+        })
+    except Exception as e:
+        return JsonResponse({'error': str(e)})
+
 urlpatterns = [
     path('', api_info, name='api_info'),
     path('run-migrations/', run_migrations, name='run_migrations'),
     path('create-superuser/', create_superuser, name='create_superuser'),
     path('check-users/', check_users, name='check_users'),
     path('debug-auth/', debug_auth, name='debug_auth'),
+    path('debug-media/', debug_media, name='debug_media'),
     path('admin/', admin.site.urls),
     path('api/auth/', include('users.urls')),
     path('api/properties/', include('properties.urls')),
