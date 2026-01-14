@@ -15,9 +15,14 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = config('SECRET_KEY', default='django-insecure-your-secret-key-here-change-in-production')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = config('DEBUG', default=True, cast=bool)
+DEBUG = config('DEBUG', default=False, cast=bool)
 
-ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='localhost,127.0.0.1').split(',')
+# Automatically add Railway domain to allowed hosts
+railway_domain = os.getenv('RAILWAY_PUBLIC_DOMAIN', '')
+if railway_domain:
+    ALLOWED_HOSTS = config('ALLOWED_HOSTS', default=f'localhost,127.0.0.1,{railway_domain}').split(',')
+else:
+    ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='localhost,127.0.0.1').split(',')
 
 # Application definition
 INSTALLED_APPS = [
@@ -77,27 +82,36 @@ TEMPLATES = [
 WSGI_APPLICATION = 'housing_analyzer.wsgi.application'
 
 # Database Configuration
-# MySQL Database Configuration
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'housing_analyzer',  # Database name
-        'USER': 'root',             # MySQL username
-        'PASSWORD': 'Soklin0976193630',  # MySQL password
-        'HOST': 'localhost',        # Database host
-        'PORT': '3306',             # MySQL port (default is 3306)
-        'OPTIONS': {
-            'init_command': "SET sql_mode='STRICT_TRANS_TABLES', time_zone='+07:00'",
-            'charset': 'utf8mb4',
-        },
-        'TIME_ZONE': 'Asia/Phnom_Penh',
-        'USE_TZ': True,
-        'TEST': {
-            'CHARSET': 'utf8mb4',
-            'COLLATION': 'utf8mb4_unicode_ci',
+# Check if running on Railway (production)
+import os
+
+if os.getenv('RAILWAY_ENVIRONMENT') or os.getenv('RAILWAY_PUBLIC_DOMAIN'):
+    # Railway MySQL Database Configuration
+    DATABASES = {
+        'default': dj_database_url.parse(os.getenv('DATABASE_URL'))
+    }
+else:
+    # Local MySQL Database Configuration (for development)
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.mysql',
+            'NAME': 'housing_analyzer',  # Database name
+            'USER': 'root',             # MySQL username
+            'PASSWORD': 'Soklin0976193630',  # MySQL password
+            'HOST': 'localhost',        # Database host
+            'PORT': '3306',             # MySQL port (default is 3306)
+            'OPTIONS': {
+                'init_command': "SET sql_mode='STRICT_TRANS_TABLES', time_zone='+07:00'",
+                'charset': 'utf8mb4',
+            },
+            'TIME_ZONE': 'Asia/Phnom_Penh',
+            'USE_TZ': True,
+            'TEST': {
+                'CHARSET': 'utf8mb4',
+                'COLLATION': 'utf8mb4_unicode_ci',
+            }
         }
     }
-}
 
 # Option 2: SQLite (Simple, for development only)
 # DATABASES = {

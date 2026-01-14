@@ -1,0 +1,20 @@
+[build]
+builder = "nixpacks"
+
+[deploy]
+startCommand = "gunicorn housing_analyzer.wsgi:application"
+restartPolicyType = "on_failure"
+restartPolicyMaxRetries = 10
+healthcheckPath = "/api/"
+healthcheckTimeout = 100
+healthcheckInterval = 30
+
+[[services]]
+name = "web"
+source = "."
+[services.variables]
+PYTHON_VERSION = "3.11"
+
+[deploy.healthcheck]
+path = "/api/"
+port = 8000
