@@ -16,7 +16,10 @@ class PropertyImageSerializer(serializers.ModelSerializer):
                 # Build full URL for API requests
                 data['image'] = request.build_absolute_uri(image_url)
             else:
-                # For admin or other contexts
+                # For admin or other contexts, ensure full URL
+                if not image_url.startswith('http'):
+                    from django.conf import settings
+                    image_url = f"https://web-production-6f713.up.railway.app{image_url}"
                 data['image'] = image_url
         else:
             # Fallback placeholder if no real image
