@@ -5,7 +5,7 @@ builder = "nixpacks"
 startCommand = "cd backend && python manage.py runserver 0.0.0.0:$PORT"
 restartPolicyType = "on_failure"
 restartPolicyMaxRetries = 10
-healthcheckPath = "/api/"
+healthcheckPath = "/"
 healthcheckTimeout = 100
 healthcheckInterval = 30
 
@@ -16,5 +16,5 @@ source = "."
 PYTHON_VERSION = "3.11"
 
 [deploy.healthcheck]
-path = "/api/"
+path = "/"
 port = 8000
