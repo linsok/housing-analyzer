@@ -6,6 +6,8 @@ from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
 from django.http import JsonResponse
+from django.core.management import call_command
+import os
 
 def api_info(request):
     return JsonResponse({
@@ -22,8 +24,20 @@ def api_info(request):
         }
     })
 
+def run_migrations(request):
+    if request.method == 'POST':
+        try:
+            call_command('makemigrations', interactive=False)
+            call_command('migrate', interactive=False)
+            call_command('collectstatic', interactive=False)
+            return JsonResponse({'status': 'success', 'message': 'Migrations completed successfully'})
+        except Exception as e:
+            return JsonResponse({'status': 'error', 'message': str(e)})
+    return JsonResponse({'status': 'error', 'message': 'POST request required'})
+
 urlpatterns = [
     path('', api_info, name='api_info'),
+    path('run-migrations/', run_migrations, name='run_migrations'),
     path('admin/', admin.site.urls),
     path('api/auth/', include('users.urls')),
     path('api/properties/', include('properties.urls')),
