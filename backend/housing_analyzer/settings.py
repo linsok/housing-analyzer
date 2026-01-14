@@ -15,7 +15,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = config('SECRET_KEY', default='django-insecure-your-secret-key-here-change-in-production')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = config('DEBUG', default=False, cast=bool)
+DEBUG = True  # Temporarily enabled for debugging
 
 # Automatically add Railway domain to allowed hosts
 railway_domain = os.getenv('RAILWAY_PUBLIC_DOMAIN', '')
@@ -243,6 +243,12 @@ if not DEBUG:
 
 # URL settings
 APPEND_SLASH = False  # Disable automatic slash appending
+
+# CSRF settings
+CSRF_COOKIE_SECURE = False  # Disabled for Railway
+CSRF_COOKIE_HTTPONLY = False
+CSRF_TRUSTED_ORIGINS = ["https://web-production-6f713.up.railway.app"]
+CSRF_ALLOW_ALL_ORIGINS = True  # Allow all origins for development
 
 # Email settings (configure for production)
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
