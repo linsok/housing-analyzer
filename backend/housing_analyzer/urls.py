@@ -152,6 +152,66 @@ def debug_media(request):
     except Exception as e:
         return JsonResponse({'error': str(e)})
 
+@csrf_exempt
+def upload_sample_images(request):
+    """Upload sample property images for testing"""
+    try:
+        from django.core.files.base import ContentFile
+        from properties.models import PropertyImage, Property
+        import requests
+        
+        # Get first property
+        property = Property.objects.first()
+        if not property:
+            return JsonResponse({'error': 'No properties found'})
+        
+        # Sample image URLs
+        sample_images = [
+            {
+                'filename': 'property1.jpg',
+                'url': 'https://picsum.photos/400/300?random=1'
+            },
+            {
+                'filename': 'property2.jpg', 
+                'url': 'https://picsum.photos/400/300?random=2'
+            },
+            {
+                'filename': 'property3.jpg',
+                'url': 'https://picsum.photos/400/300?random=3'
+            }
+        ]
+        
+        uploaded_images = []
+        
+        for i, img_data in enumerate(sample_images):
+            # Download image
+            response = requests.get(img_data['url'])
+            if response.status_code == 200:
+                # Create ContentFile
+                image_content = ContentFile(response.content, img_data['filename'])
+                
+                # Save to property image
+                property_image = PropertyImage.objects.create(
+                    property=property,
+                    image=image_content,
+                    caption=f'Sample property image {i+1}',
+                    is_primary=(i == 0),  # First image is primary
+                    order=i
+                )
+                
+                uploaded_images.append({
+                    'id': property_image.id,
+                    'filename': img_data['filename'],
+                    'url': property_image.image.url
+                })
+        
+        return JsonResponse({
+            'success': True,
+            'uploaded_images': uploaded_images
+        })
+    except Exception as e:
+        return JsonResponse({'error': str(e)})
+
 urlpatterns = [
     path('', api_info, name='api_info'),
     path('run-migrations/', run_migrations, name='run_migrations'),
@@ -159,6 +219,7 @@ urlpatterns = [
     path('check-users/', check_users, name='check_users'),
     path('debug-auth/', debug_auth, name='debug_auth'),
     path('debug-media/', debug_media, name='debug_media'),
+    path('upload-sample-images/', upload_sample_images, name='upload_sample_images'),
     path('admin/', admin.site.urls),
     path('api/auth/', include('users.urls')),
     path('api/properties/', include('properties.urls')),
