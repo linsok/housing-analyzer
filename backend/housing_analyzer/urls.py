@@ -202,7 +202,7 @@ def upload_sample_images(request):
                 uploaded_images.append({
                     'id': property_image.id,
                     'filename': img_data['filename'],
-                    'url': property_image.image.url
+                    'url': property_image.image.url if property_image.image else None
                 })
         
         return JsonResponse({
