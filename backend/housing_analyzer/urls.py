@@ -44,19 +44,56 @@ def create_superuser(request):
             from django.contrib.auth import get_user_model
             User = get_user_model()
             
-            if not User.objects.filter(username='admin').exists():
-                User.objects.create_superuser('admin', 'admin@housinganalyzer.com', 'admin123')
-                return JsonResponse({'status': 'success', 'message': 'Superuser created: admin/admin123'})
+            # Check if user exists
+            if User.objects.filter(username='admin').exists():
+                user = User.objects.get(username='admin')
+                return JsonResponse({
+                    'status': 'info', 
+                    'message': 'Superuser already exists',
+                    'username': user.username,
+                    'is_staff': user.is_staff,
+                    'is_superuser': user.is_superuser,
+                    'is_active': user.is_active
+                })
             else:
-                return JsonResponse({'status': 'info', 'message': 'Superuser already exists'})
+                # Create superuser
+                user = User.objects.create_superuser('admin', 'admin@housinganalyzer.com', 'admin123')
+                return JsonResponse({
+                    'status': 'success', 
+                    'message': 'Superuser created: admin/admin123',
+                    'username': user.username,
+                    'is_staff': user.is_staff,
+                    'is_superuser': user.is_superuser,
+                    'is_active': user.is_active
+                })
         except Exception as e:
             return JsonResponse({'status': 'error', 'message': str(e)})
     return JsonResponse({'status': 'error', 'message': 'POST request required'})
+
+@csrf_exempt
+def check_users(request):
+    try:
+        from django.contrib.auth import get_user_model
+        User = get_user_model()
+        users = User.objects.all()
+        user_list = []
+        for user in users:
+            user_list.append({
+                'username': user.username,
+                'email': user.email,
+                'is_staff': user.is_staff,
+                'is_superuser': user.is_superuser,
+                'is_active': user.is_active
+            })
+        return JsonResponse({'users': user_list})
+    except Exception as e:
+        return JsonResponse({'error': str(e)})
 
 urlpatterns = [
     path('', api_info, name='api_info'),
     path('run-migrations/', run_migrations, name='run_migrations'),
     path('create-superuser/', create_superuser, name='create_superuser'),
+    path('check-users/', check_users, name='check_users'),
     path('admin/', admin.site.urls),
     path('api/auth/', include('users.urls')),
     path('api/properties/', include('properties.urls')),
