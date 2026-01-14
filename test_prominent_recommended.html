@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Prominent RECOMMENDED Overlay Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .test-section { margin: 20px 0; padding: 15px; border: 1px solid #ddd; border-radius: 5px; }
+        .success { background-color: #d4edda; border-color: #c3e6cb; }
+        .recommended-demo { 
+            width: 300px; 
+            height: 200px; 
+            border: 2px solid #ddd; 
+            border-radius: 12px; 
+            overflow: hidden; 
+            position: relative; 
+            background: linear-gradient(45deg, #f0f0f0, #e0e0e0);
+            margin: 10px;
+        }
+        .recommended-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 20;
+            pointer-events: none;
+        }
+        .gradient-overlay {
+            background: linear-gradient(to bottom, rgba(0,0,0,0.7), transparent);
+            padding-top: 12px;
+        }
+        .recommended-badge {
+            background: linear-gradient(to right, #2563eb, #9333ea);
+            color: white;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: bold;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin: 0 auto;
+            width: fit-content;
+        }
+        .corner-ribbon {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            width: 64px;
+            height: 64px;
+            overflow: hidden;
+        }
+        .ribbon-content {
+            position: absolute;
+            top: 0;
+            right: 0;
+            transform: rotate(45deg) translateX(16px) translateY(-4px);
+            transform-origin: center;
+            color: white;
+            font-size: 10px;
+            font-weight: bold;
+            white-space: nowrap;
+        }
+        .blue { background-color: #3b82f6; }
+        .green { background-color: #10b981; }
+        .yellow { background-color: #f59e0b; }
+        .purple { background-color: #8b5cf6; }
+        .demo-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; }
+    </style>
+</head>
+<body>
+    <h1>🌟 Prominent RECOMMENDED Overlay Test</h1>
+    <p>Testing the new prominent "RECOMMENDED" overlay that will appear on property surfaces in Rent Nav</p>
+    
+    <div class="test-section success">
+        <h2>✅ New Prominent RECOMMENDED Overlay Design</h2>
+        <p>Each recommended property will now show:</p>
+        <ul>
+            <li>🎯 <strong>Prominent "RECOMMENDED" badge</strong> at the top center</li>
+            <li>🏷️ <strong>Corner ribbon</strong> indicating the recommendation type</li>
+            <li>🎨 <strong>Gradient overlay</strong> for better visibility</li>
+            <li>👁️ <strong>Easily visible</strong> to renters in Rent Nav</li>
+        </ul>
+    </div>
+
+    <h2>🎨 Visual Examples:</h2>
+    <div class="demo-grid">
+        <!-- Most Booked -->
+        <div>
+            <h3>🔵 Most Booked Property</h3>
+            <div class="recommended-demo">
+                <div class="recommended-overlay">
+                    <div class="gradient-overlay">
+                        <div class="recommended-badge">
+                            ⭐ RECOMMENDED
+                        </div>
+                    </div>
+                    <div class="corner-ribbon blue">
+                        <div class="ribbon-content">POPULAR</div>
+                    </div>
+                </div>
+                <div style="padding: 20px; text-align: center; color: #666;">
+                    <h4>Property Image Here</h4>
+                    <p>Premier Room - Phnom Penh</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Highest Rated -->
+        <div>
+            <h3>🟢 Highest Rated Property</h3>
+            <div class="recommended-demo">
+                <div class="recommended-overlay">
+                    <div class="gradient-overlay">
+                        <div class="recommended-badge">
+                            ⭐ RECOMMENDED
+                        </div>
+                    </div>
+                    <div class="corner-ribbon green">
+                        <div class="ribbon-content">TOP RATED</div>
+                    </div>
+                </div>
+                <div style="padding: 20px; text-align: center; color: #666;">
+                    <h4>Property Image Here</h4>
+                    <p>High Rated Apartment - Phnom Penh</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- User Search Based -->
+        <div>
+            <h3>🟡 Recommended For You</h3>
+            <div class="recommended-demo">
+                <div class="recommended-overlay">
+                    <div class="gradient-overlay">
+                        <div class="recommended-badge">
+                            ⭐ RECOMMENDED
+                        </div>
+                    </div>
+                    <div class="corner-ribbon yellow">
+                        <div class="ribbon-content">FOR YOU</div>
+                    </div>
+                </div>
+                <div style="padding: 20px; text-align: center; color: #666;">
+                    <h4>Property Image Here</h4>
+                    <p>Personalized Match - Based on your search</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Average Price -->
+        <div>
+            <h3>🟣 Best Value Property</h3>
+            <div class="recommended-demo">
+                <div class="recommended-overlay">
+                    <div class="gradient-overlay">
+                        <div class="recommended-badge">
+                            ⭐ RECOMMENDED
+                        </div>
+                    </div>
+                    <div class="corner-ribbon purple">
+                        <div class="ribbon-content">BEST VALUE</div>
+                    </div>
+                </div>
+                <div style="padding: 20px; text-align: center; color: #666;">
+                    <h4>Property Image Here</h4>
+                    <p>Average Price - Great Value Deal</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="test-section success">
+        <h2>🎯 Implementation Features:</h2>
+        <ul>
+            <li>✅ <strong>Prominent "RECOMMENDED" text</strong> clearly visible on property surface</li>
+            <li>✅ <strong>Color-coded corner ribbons</strong> showing recommendation type</li>
+            <li>✅ <strong>Gradient overlay</strong> ensures text is readable on any image</li>
+            <li>✅ <strong>Easy for renters to spot</strong> recommended properties in Rent Nav</li>
+            <li>✅ <strong>Works on both Home and Properties pages</strong></li>
+            <li>✅ <strong>Maintains existing functionality</strong> for non-recommended properties</li>
+        </ul>
+    </div>
+
+    <div class="test-section">
+        <h2>🌐 View Live Implementation:</h2>
+        <p>Visit the live pages to see the recommended properties with prominent overlays:</p>
+        <ul>
+            <li><a href="http://localhost:5174/" target="_blank">🏠 Home Page - See recommended properties with overlays</a></li>
+            <li><a href="http://localhost:5174/properties" target="_blank">🏘️ Properties Page - See recommended properties first</a></li>
+        </ul>
+        <p><strong>Look for:</strong> Properties with the prominent "RECOMMENDED" badge and corner ribbons!</p>
+    </div>
+</body>
+</html>

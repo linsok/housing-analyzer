@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Frontend API Test</title>
+</head>
+<body>
+    <h1>Frontend OTP API Test</h1>
+    <div id="results"></div>
+    
+    <script>
+        const resultsDiv = document.getElementById('results');
+        
+        function log(message) {
+            console.log(message);
+            resultsDiv.innerHTML += '<p>' + message + '</p>';
+        }
+        
+        // Test the exact same way the frontend does
+        async function testFrontendAPI() {
+            log('Testing frontend API calls...');
+            
+            try {
+                // Test forgot password (same as authService)
+                const API_URL = 'http://localhost:8000/api';
+                const response = await fetch(`${API_URL}/auth/forgot_password/`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ email: 'mana123@gmail.com' }),
+                });
+                
+                log('Status: ' + response.status);
+                const data = await response.json();
+                log('Response: ' + JSON.stringify(data));
+                
+                if (response.ok) {
+                    log('✅ Frontend API call works!');
+                } else {
+                    log('❌ Frontend API call failed');
+                }
+            } catch (error) {
+                log('❌ Network error: ' + error.message);
+            }
+        }
+        
+        testFrontendAPI();
+    </script>
+</body>
+</html>
