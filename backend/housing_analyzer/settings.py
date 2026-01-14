@@ -225,12 +225,19 @@ SIMPLE_JWT = {
 }
 
 # CORS settings
-CORS_ALLOWED_ORIGINS = config(
-    'CORS_ALLOWED_ORIGINS',
-    default='http://localhost:3000,http://localhost:5173,http://127.0.0.1:3000,http://127.0.0.1:5173'
-).split(',')
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost:3000",
+    "http://localhost:5173",
+    "https://housing-analyzer.vercel.app",
+    "https://*.vercel.app",
+    "http://127.0.0.1:3000",
+    "http://127.0.0.1:5173",
+]
 
 CORS_ALLOW_CREDENTIALS = True
+
+# Allow all origins for development (remove in production)
+CORS_ALLOW_ALL_ORIGINS = True
 
 # Security settings for production
 if not DEBUG:
