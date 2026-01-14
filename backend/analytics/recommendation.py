@@ -100,8 +100,8 @@ def get_user_search_based_properties(user, limit=3):
     Properties similar to what the user searches for most often.
     Used for: Personalized recommendations, Returning users
     """
-    if not user.is_authenticated:
-        return []
+    if not user or not user.is_authenticated:
+        return get_popular_properties(limit)
     
     # Get user's viewed properties to understand preferences
     viewed_properties = PropertyView.objects.filter(
