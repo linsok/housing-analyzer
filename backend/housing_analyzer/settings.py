@@ -234,12 +234,15 @@ CORS_ALLOW_CREDENTIALS = True
 
 # Security settings for production
 if not DEBUG:
-    SECURE_SSL_REDIRECT = True
-    SESSION_COOKIE_SECURE = True
-    CSRF_COOKIE_SECURE = True
+    SECURE_SSL_REDIRECT = False  # Disabled to prevent redirect loop on Railway
+    SESSION_COOKIE_SECURE = False  # Disabled for Railway
+    CSRF_COOKIE_SECURE = False  # Disabled for Railway
     SECURE_BROWSER_XSS_FILTER = True
     SECURE_CONTENT_TYPE_NOSNIFF = True
     X_FRAME_OPTIONS = 'DENY'
+
+# URL settings
+APPEND_SLASH = False  # Disable automatic slash appending
 
 # Email settings (configure for production)
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
