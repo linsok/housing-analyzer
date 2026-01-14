@@ -7,6 +7,7 @@ from django.conf import settings
 from django.conf.urls.static import static
 from django.http import JsonResponse
 from django.core.management import call_command
+from django.views.decorators.csrf import csrf_exempt
 import os
 
 def api_info(request):
@@ -24,6 +25,7 @@ def api_info(request):
         }
     })
 
+@csrf_exempt
 def run_migrations(request):
     if request.method == 'POST':
         try:
@@ -35,6 +37,7 @@ def run_migrations(request):
             return JsonResponse({'status': 'error', 'message': str(e)})
     return JsonResponse({'status': 'error', 'message': 'POST request required'})
 
+@csrf_exempt
 def create_superuser(request):
     if request.method == 'POST':
         try:
