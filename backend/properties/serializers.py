@@ -7,18 +7,9 @@ from users.serializers import UserSerializer
 class PropertyImageSerializer(serializers.ModelSerializer):
     def to_representation(self, instance):
         data = super().to_representation(instance)
-        # Check if image exists, if not use placeholder
-        if data.get('image'):
-            try:
-                import os
-                from django.conf import settings
-                image_path = os.path.join(settings.MEDIA_ROOT, instance.image.name)
-                if not os.path.exists(image_path):
-                    # Use placeholder image if file doesn't exist
-                    data['image'] = f"https://via.placeholder.com/400x300/4F46E5/FFFFFF?text=Property+{instance.id}"
-            except:
-                # Fallback to placeholder if anything goes wrong
-                data['image'] = f"https://via.placeholder.com/400x300/4F46E5/FFFFFF?text=Property+{instance.id}"
+        # Always use placeholder for now to ensure images display
+        property_id = instance.property.id if instance.property else 'Unknown'
+        data['image'] = f"https://via.placeholder.com/400x300/4F46E5/FFFFFF?text=Property+{property_id}"
         return data
     
     class Meta:
