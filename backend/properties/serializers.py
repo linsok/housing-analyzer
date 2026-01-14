@@ -7,9 +7,15 @@ from users.serializers import UserSerializer
 class PropertyImageSerializer(serializers.ModelSerializer):
     def to_representation(self, instance):
         data = super().to_representation(instance)
-        # Always use placeholder for now to ensure images display
-        property_id = instance.property.id if instance.property else 'Unknown'
-        data['image'] = f"https://picsum.photos/400/300?random={property_id}"
+        # Check if this is for API (not admin)
+        request = self.context.get('request')
+        if request and hasattr(request, 'build_absolute_uri'):
+            # API request - use placeholder
+            property_id = instance.property.id if instance.property else 'Unknown'
+            data['image'] = f"https://picsum.photos/400/300?random={property_id}"
+        else:
+            # Admin panel - keep original image URL
+            pass
         return data
     
     class Meta:
