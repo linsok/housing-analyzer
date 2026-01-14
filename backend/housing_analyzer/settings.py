@@ -14,8 +14,8 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = config('SECRET_KEY', default='django-insecure-your-secret-key-here-change-in-production')
 
-# SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True  # Temporarily enabled for debugging
+# SECURITY WARNING: keep debug false in production
+DEBUG = False  # Temporarily enabled for debugging
 
 # Automatically add Railway domain to allowed hosts
 railway_domain = os.getenv('RAILWAY_PUBLIC_DOMAIN', '')
@@ -187,6 +187,15 @@ STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 # Media files
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
+
+# Production media settings
+if not DEBUG:
+    # Use full domain for media URLs in production
+    railway_domain = os.getenv('RAILWAY_PUBLIC_DOMAIN', '')
+    if railway_domain:
+        MEDIA_URL = f'https://{railway_domain}/media/'
+    else:
+        MEDIA_URL = '/media/'
 
 # Default primary key field type
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
