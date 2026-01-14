@@ -35,9 +35,25 @@ def run_migrations(request):
             return JsonResponse({'status': 'error', 'message': str(e)})
     return JsonResponse({'status': 'error', 'message': 'POST request required'})
 
+def create_superuser(request):
+    if request.method == 'POST':
+        try:
+            from django.contrib.auth import get_user_model
+            User = get_user_model()
+            
+            if not User.objects.filter(username='admin').exists():
+                User.objects.create_superuser('admin', 'admin@housinganalyzer.com', 'admin123')
+                return JsonResponse({'status': 'success', 'message': 'Superuser created: admin/admin123'})
+            else:
+                return JsonResponse({'status': 'info', 'message': 'Superuser already exists'})
+        except Exception as e:
+            return JsonResponse({'status': 'error', 'message': str(e)})
+    return JsonResponse({'status': 'error', 'message': 'POST request required'})
+
 urlpatterns = [
     path('', api_info, name='api_info'),
     path('run-migrations/', run_migrations, name='run_migrations'),
+    path('create-superuser/', create_superuser, name='create_superuser'),
     path('admin/', admin.site.urls),
     path('api/auth/', include('users.urls')),
     path('api/properties/', include('properties.urls')),
