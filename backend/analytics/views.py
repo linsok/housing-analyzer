@@ -1046,14 +1046,14 @@ def highest_rated_properties(request):
 
 
 @api_view(['GET'])
-@permission_classes([permissions.IsAuthenticated])
+@permission_classes([permissions.AllowAny])
 def user_search_based_properties(request):
     """
     3. Most Searched by That User or Renter
     Properties similar to what the user searches for most often.
     """
     try:
-        user = request.user
+        user = request.user if request.user.is_authenticated else None
         limit = int(request.query_params.get('limit', 3))
         properties = get_user_search_based_properties(user, limit)
         

@@ -9,7 +9,7 @@ class PropertyImageSerializer(serializers.ModelSerializer):
         data = super().to_representation(instance)
         # Always use placeholder for now to ensure images display
         property_id = instance.property.id if instance.property else 'Unknown'
-        data['image'] = f"https://via.placeholder.com/400x300/4F46E5/FFFFFF?text=Property+{property_id}"
+        data['image'] = f"https://via.placeholder.com/400x300/4F46E5/FFFFFF?text=Property_{property_id}"
         return data
     
     class Meta:
