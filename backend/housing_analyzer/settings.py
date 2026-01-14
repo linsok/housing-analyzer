@@ -85,6 +85,10 @@ WSGI_APPLICATION = 'housing_analyzer.wsgi.application'
 # Check if running on Railway (production)
 import os
 
+# Use PyMySQL as MySQL backend
+import pymysql
+pymysql.install_as_MySQLdb()
+
 if os.getenv('RAILWAY_ENVIRONMENT') or os.getenv('RAILWAY_PUBLIC_DOMAIN'):
     # Railway MySQL Database Configuration
     database_url = os.getenv('MYSQL_URL') or os.getenv('DATABASE_URL')
