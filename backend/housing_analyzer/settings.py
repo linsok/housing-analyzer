@@ -88,7 +88,7 @@ import os
 if os.getenv('RAILWAY_ENVIRONMENT') or os.getenv('RAILWAY_PUBLIC_DOMAIN'):
     # Railway MySQL Database Configuration
     DATABASES = {
-        'default': dj_database_url.parse(os.getenv('DATABASE_URL'))
+        'default': dj_database_url.parse(os.getenv('MYSQL_URL') or os.getenv('DATABASE_URL'))
     }
 else:
     # Local MySQL Database Configuration (for development)
