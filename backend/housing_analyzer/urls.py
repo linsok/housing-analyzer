@@ -89,11 +89,36 @@ def check_users(request):
     except Exception as e:
         return JsonResponse({'error': str(e)})
 
+@csrf_exempt
+def debug_auth(request):
+    try:
+        from django.contrib.auth import get_user_model
+        User = get_user_model()
+        
+        if hasattr(request, 'user') and request.user.is_authenticated:
+            return JsonResponse({
+                'authenticated': True,
+                'user': {
+                    'username': request.user.username,
+                    'email': request.user.email,
+                    'is_staff': request.user.is_staff,
+                    'is_active': request.user.is_active
+                }
+            })
+        else:
+            return JsonResponse({
+                'authenticated': False,
+                'message': 'User not authenticated'
+            })
+    except Exception as e:
+        return JsonResponse({'error': str(e)})
+
 urlpatterns = [
     path('', api_info, name='api_info'),
     path('run-migrations/', run_migrations, name='run_migrations'),
     path('create-superuser/', create_superuser, name='create_superuser'),
     path('check-users/', check_users, name='check_users'),
+    path('debug-auth/', debug_auth, name='debug_auth'),
     path('admin/', admin.site.urls),
     path('api/auth/', include('users.urls')),
     path('api/properties/', include('properties.urls')),
