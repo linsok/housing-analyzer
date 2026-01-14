@@ -238,6 +238,8 @@ CORS_ALLOWED_ORIGINS = [
     "http://localhost:3000",
     "http://localhost:5173",
     "https://housing-analyzer.vercel.app",
+    "https://housing-analyzer-git-main-soklins-projects-7e089e19.vercel.app",
+    "https://housing-analyzer-mfj5pg7fz-soklins-projects-7e089e19.vercel.app",
     "https://*.vercel.app",
     "http://127.0.0.1:3000",
     "http://127.0.0.1:5173",
