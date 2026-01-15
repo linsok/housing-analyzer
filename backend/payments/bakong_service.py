@@ -6,7 +6,7 @@ import base64
 from decimal import Decimal
 from typing import Dict, Optional, Tuple
 import os
-from .bakong_fallback import generate_fallback_qr_code
+from .bakong_fallback import generate_fallback_qr_code, check_fallback_payment_status
 
 class BakongKHQRService:
     """
@@ -167,7 +167,8 @@ class BakongKHQRService:
             Payment status information
         """
         if not self.khqr:
-            raise Exception("Bakong KHQR service is not properly configured. Please check your environment variables.")
+            # Fallback: Return mock payment status
+            return check_fallback_payment_status(md5_hash)
         
         try:
             status = self.khqr.check_payment(md5_hash)
@@ -176,7 +177,12 @@ class BakongKHQRService:
                 'md5_hash': md5_hash
             }
         except Exception as e:
-            raise Exception(f"Failed to check payment status: {str(e)}")
+            # Check if it's a geographic restriction error
+            if "Cambodia IP" in str(e) or "geographically" in str(e).lower():
+                # Fallback to mock payment status
+                return check_fallback_payment_status(md5_hash)
+            else:
+                raise Exception(f"Failed to check payment status: {str(e)}")
     
     def get_payment_details(self, md5_hash: str) -> Optional[Dict]:
         """

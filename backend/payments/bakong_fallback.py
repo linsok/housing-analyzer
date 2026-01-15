@@ -69,6 +69,27 @@ def generate_fallback_qr_code(amount: Decimal,
         'note': 'This is a demonstration QR code. Bakong API requires Cambodia IP addresses.'
     }
 
+def check_fallback_payment_status(md5_hash: str) -> dict:
+    """
+    Check payment status for fallback QR codes
+    
+    Returns:
+        Mock payment status for demonstration purposes
+    """
+    # Mock payment status - in real implementation, this would check with Bakong
+    # For demo purposes, we'll return a "pending" status
+    
+    return {
+        'status': 'pending',
+        'md5_hash': md5_hash,
+        'message': 'This is a demonstration payment status. Real Bakong API requires Cambodia IP addresses.',
+        'transaction_id': f"MOCK_{md5_hash[:8]}",
+        'amount': None,  # Would be populated in real implementation
+        'currency': None,
+        'timestamp': None,
+        'is_mock': True
+    }
+
 def _generate_qr_image(qr_data: str) -> str:
     """
     Generate QR code image as base64 string
