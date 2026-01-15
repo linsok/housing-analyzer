@@ -199,7 +199,10 @@ if not DEBUG:
     if railway_domain:
         MEDIA_URL = f'https://{railway_domain}/media/'
     else:
+        # Fallback for Railway
         MEDIA_URL = '/media/'
+else:
+    MEDIA_URL = '/media/'
 
 # Default primary key field type
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
