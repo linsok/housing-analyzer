@@ -247,6 +247,12 @@ class PaymentViewSet(viewsets.ModelViewSet):
             payment_info = bakong_service.get_payment_details(md5_hash)
             
             return Response(payment_info)
+            
+        except Exception as e:
+            return Response(
+                {'error': f'Failed to get payment details: {str(e)}'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
     
     @action(detail=False, methods=['get'])
     def test_bakong_library(self, request):
