@@ -197,7 +197,9 @@ if not DEBUG:
     # Use full domain for media URLs in production
     railway_domain = os.getenv('RAILWAY_PUBLIC_DOMAIN', 'web-production-6f713.up.railway.app')
     if railway_domain:
-        MEDIA_URL = f'https://{railway_domain}/media/'
+        # Keep MEDIA_URL as '/media/' for Django's static serving
+        # The full URL will be constructed in the frontend
+        MEDIA_URL = '/media/'
     else:
         # Fallback for Railway
         MEDIA_URL = '/media/'
