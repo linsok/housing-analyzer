@@ -11,6 +11,7 @@ from .models import Payment, QRCode
 from .serializers import PaymentSerializer, QRCodeSerializer
 from .bakong_service import bakong_service
 from .enhanced_bakong_service import enhanced_bakong_service
+from .debug_bakong import debug_bakong_variables
 
 
 class PaymentViewSet(viewsets.ModelViewSet):
@@ -212,6 +213,18 @@ class PaymentViewSet(viewsets.ModelViewSet):
         except Exception as e:
             return Response(
                 {'error': f'Failed to check payment status: {str(e)}'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+    
+    @action(detail=False, methods=['get'])
+    def debug_bakong_config(self, request):
+        """Debug Bakong configuration"""
+        try:
+            debug_info = debug_bakong_variables()
+            return Response(debug_info)
+        except Exception as e:
+            return Response(
+                {'error': f'Debug failed: {str(e)}'},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
     

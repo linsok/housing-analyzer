@@ -8,7 +8,6 @@ import json
 import qrcode
 import io
 import base64
-import time
 from decimal import Decimal
 from typing import Dict, Optional
 from django.conf import settings
