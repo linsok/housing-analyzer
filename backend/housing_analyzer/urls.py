@@ -7,9 +7,11 @@ from django.conf import settings
 from django.conf.urls.static import static
 from django.http import JsonResponse
 from django.views.decorators.http import require_http_methods
+from django.views.decorators.csrf import csrf_exempt
+from django.core.management import call_command
 import os
-from . import views
 from payments.health_check import health_check
+from payments.test_media import test_media_serving
 
 def api_info(request):
     return JsonResponse({
@@ -264,8 +266,8 @@ urlpatterns = [
     path('api/analytics/', include('analytics.urls')),
     path('api/payments/', include('payments.urls')),
     path('api/reviews/', include('reviews.urls')),
-    path('test-media-serving/', housing_views.test_media_serving, name='test_media_serving'),
-    path('health/', housing_views.health_check, name='health_check'),
+    path('test-media-serving/', test_media_serving, name='test_media_serving'),
+    path('health/', health_check, name='health_check'),
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 
 if settings.DEBUG:

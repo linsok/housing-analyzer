@@ -22,7 +22,7 @@ from .recommendation import (
 
 
 @api_view(['GET'])
-@permission_classes([permissions.AllowAny])
+@permission_classes([AllowAny])
 def rent_trends(request):
     """Get rent trends by city and property type - Fixed"""
     city = request.query_params.get('city')
@@ -51,7 +51,7 @@ def rent_trends(request):
 
 
 @api_view(['GET'])
-@permission_classes([permissions.AllowAny])
+@permission_classes([AllowAny])
 def city_comparison(request):
     """Compare rent prices across cities"""
     cities = request.query_params.getlist('cities')
@@ -77,7 +77,7 @@ def city_comparison(request):
 
 
 @api_view(['GET'])
-@permission_classes([permissions.AllowAny])
+@permission_classes([AllowAny])
 def popular_areas(request):
     """Get most popular areas based on property count and demand"""
     city = request.query_params.get('city')
@@ -99,7 +99,7 @@ def popular_areas(request):
 
 
 @api_view(['GET'])
-@permission_classes([permissions.AllowAny])
+@permission_classes([AllowAny])
 def property_demand(request):
     """Analyze property demand by type and features"""
     
@@ -134,7 +134,7 @@ def property_demand(request):
 
 
 @api_view(['GET'])
-@permission_classes([permissions.IsAuthenticated])
+@permission_classes([IsAuthenticated])
 def owner_analytics(request):
     """Enhanced analytics for property owners with detailed metrics"""
     
@@ -318,7 +318,7 @@ def owner_analytics(request):
 
 
 @api_view(['GET'])
-@permission_classes([permissions.IsAdminUser])
+@permission_classes([IsAdminUser])
 def admin_dashboard(request):
     """Analytics for admin dashboard with user activity charts"""
     
@@ -434,7 +434,7 @@ def admin_dashboard(request):
 
 
 @api_view(['GET'])
-@permission_classes([permissions.AllowAny])
+@permission_classes([AllowAny])
 def market_trends_comprehensive(request):
     """Comprehensive market trends with charts for all user roles"""
     
@@ -618,7 +618,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 @api_view(['GET'])
-@permission_classes([permissions.IsAuthenticated])
+@permission_classes([IsAuthenticated])
 def renter_analytics(request):
     """Get comprehensive analytics for renters"""
     try:
@@ -879,7 +879,7 @@ def renter_analytics(request):
 # NEW RECOMMENDATION ENDPOINTS BASED ON 4 CRITERIA
 
 @api_view(['GET'])
-@permission_classes([permissions.IsAuthenticated])
+@permission_classes([IsAuthenticated])
 def recommended_properties(request):
     """
     Get property recommendations based on 4 criteria:
@@ -946,7 +946,7 @@ def recommended_properties(request):
 
 
 @api_view(['GET'])
-@permission_classes([permissions.AllowAny])
+@permission_classes([AllowAny])
 def most_booked_properties(request):
     """
     1. Most Booked Rooms / Properties
@@ -998,7 +998,7 @@ def most_booked_properties(request):
 
 
 @api_view(['GET'])
-@permission_classes([permissions.AllowAny])
+@permission_classes([AllowAny])
 def highest_rated_properties(request):
     """
     2. Highest Rating Star Rooms / Properties
@@ -1048,7 +1048,7 @@ def highest_rated_properties(request):
 
 
 @api_view(['GET'])
-@permission_classes([permissions.AllowAny])
+@permission_classes([AllowAny])
 def user_search_based_properties(request):
     """
     3. Most Searched by That User or Renter
@@ -1103,7 +1103,7 @@ def user_search_based_properties(request):
 
 
 @api_view(['GET'])
-@permission_classes([permissions.AllowAny])
+@permission_classes([AllowAny])
 def average_price_properties(request):
     """
     4. Average Price Property
