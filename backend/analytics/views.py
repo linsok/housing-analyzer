@@ -11,7 +11,7 @@ from django.utils import timezone as django_timezone
 from decimal import Decimal
 from properties.models import Property, PropertyView
 from bookings.models import Booking
-from .models import RentTrend, PropertyView, PropertyInteraction, SearchHistory
+from .models import RentTrend, PropertyInteraction, SearchHistory
 from .recommendation import (
     get_recommendations, 
     get_most_booked_properties, 
@@ -19,7 +19,6 @@ from .recommendation import (
     get_user_search_based_properties,
     get_average_price_properties
 )
-from decimal import Decimal
 
 
 @api_view(['GET'])
