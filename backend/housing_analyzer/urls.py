@@ -12,7 +12,6 @@ from django.core.management import call_command
 import os
 from payments.health_check import health_check
 from payments.test_media import test_media_serving
-from .media_serve import media_serve
 
 def api_info(request):
     return JsonResponse({
@@ -252,9 +251,6 @@ def upload_sample_images(request):
         return JsonResponse({'error': str(e)})
 
 urlpatterns = [
-    # Media serving for production
-    path('media/<path:path>', media_serve, name='media_serve'),
-    
     path('', api_info, name='api_info'),
     path('run-migrations/', run_migrations, name='run_migrations'),
     path('create-superuser/', create_superuser, name='create_superuser'),
@@ -273,6 +269,3 @@ urlpatterns = [
     path('test-media-serving/', test_media_serving, name='test_media_serving'),
     path('health/', health_check, name='health_check'),
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
-
-if settings.DEBUG:
-    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
