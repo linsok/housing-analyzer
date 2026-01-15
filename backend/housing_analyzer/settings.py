@@ -87,19 +87,15 @@ WSGI_APPLICATION = 'housing_analyzer.wsgi.application'
 # Check if running on Railway (production)
 import os
 
-# Use PyMySQL as MySQL backend
-import pymysql
-pymysql.install_as_MySQLdb()
-
 if os.getenv('RAILWAY_ENVIRONMENT') or os.getenv('RAILWAY_PUBLIC_DOMAIN'):
     # Railway MySQL Database Configuration
-    database_url = os.getenv('MYSQL_URL') or os.getenv('DATABASE_URL')
+    database_url = os.getenv('DATABASE_URL') or os.getenv('MYSQL_URL')
     if database_url:
         DATABASES = {
             'default': dj_database_url.parse(database_url)
         }
     else:
-        # Fallback configuration
+        # Fallback configuration using Railway environment variables
         DATABASES = {
             'default': {
                 'ENGINE': 'django.db.backends.mysql',
@@ -108,6 +104,9 @@ if os.getenv('RAILWAY_ENVIRONMENT') or os.getenv('RAILWAY_PUBLIC_DOMAIN'):
                 'PASSWORD': os.getenv('MYSQL_PASSWORD', ''),
                 'HOST': os.getenv('MYSQLHOST', 'mysql.railway.internal'),
                 'PORT': os.getenv('MYSQLPORT', '3306'),
+                'OPTIONS': {
+                    'init_command': "SET sql_mode='STRICT_TRANS_TABLES'",
+                }
             }
         }
 else:
