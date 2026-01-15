@@ -186,6 +186,9 @@ def test_media(request):
         })
     except Exception as e:
         return JsonResponse({'error': str(e)})
+
+@csrf_exempt
+def upload_sample_images(request):
     """Upload sample property images for testing"""
     try:
         from django.core.files.base import ContentFile
