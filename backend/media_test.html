@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Media Test - Housing Analyzer</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .image-test { margin: 20px 0; border: 1px solid #ccc; padding: 10px; }
+        .image-test img { max-width: 200px; height: auto; display: block; margin: 10px 0; }
+        .error { color: red; }
+        .success { color: green; }
+    </style>
+</head>
+<body>
+    <h1>Media File Test - Housing Analyzer</h1>
+    <p>This page tests if media files are loading correctly from Railway.</p>
+    
+    <div class="image-test">
+        <h3>Property Image Test</h3>
+        <img src="https://web-production-6f713.up.railway.app/media/properties/Parc-3-Cheras-Malaysia.jpg" 
+             onerror="this.style.display='none'; this.nextElementSibling.style.display='block';" 
+             onload="this.nextElementSibling.style.display='none';">
+        <div class="error" style="display:none;">Failed to load property image</div>
+        <div class="success">Property image loaded successfully</div>
+    </div>
+    
+    <div class="image-test">
+        <h3>Profile Picture Test</h3>
+        <img src="https://web-production-6f713.up.railway.app/media/profiles/1723173243300.jpg" 
+             onerror="this.style.display='none'; this.nextElementSibling.style.display='block';" 
+             onload="this.nextElementSibling.style.display='none';">
+        <div class="error" style="display:none;">Failed to load profile picture</div>
+        <div class="success">Profile picture loaded successfully</div>
+    </div>
+    
+    <div class="image-test">
+        <h3>Debug Info</h3>
+        <p>Open browser console (F12) to see any loading errors.</p>
+        <p>Check Network tab for failed requests.</p>
+    </div>
+</body>
+</html>
