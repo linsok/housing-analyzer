@@ -72,7 +72,7 @@ class OwnerEvaluationViewSet(viewsets.ModelViewSet):
         serializer = self.get_serializer(evaluation)
         return Response(serializer.data)
     
-    @action(detail=False, methods=['get'], url_path='owner/(?P<owner_id>\d+)')
+    @action(detail=False, methods=['get'], url_path=r'owner/(?P<owner_id>\d+)')
     def owner_evaluations(self, request, owner_id=None):
         """Get all evaluations for a specific owner."""
         try:
