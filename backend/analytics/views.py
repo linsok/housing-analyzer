@@ -1,14 +1,17 @@
 from rest_framework import viewsets, permissions
 from rest_framework.decorators import api_view, permission_classes
+from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
-from django.db.models import Avg, Count, Min, Max, Q, Sum, F
-from django.db.models.functions import TruncMonth, TruncDate, TruncYear, ExtractYear, ExtractMonth
-from datetime import datetime, timedelta, timezone
+from django.db.models import Q, Avg, Count, Sum, F, FloatField, IntegerField
+from django.db.models.functions import Cast, Coalesce
+from django.utils import timezone
+from datetime import timedelta, datetime
 from dateutil.relativedelta import relativedelta
 from django.utils import timezone as django_timezone
+from decimal import Decimal
 from properties.models import Property, PropertyView
 from bookings.models import Booking
-from .models import RentTrend
+from .models import RentTrend, PropertyView, PropertyInteraction, SearchHistory
 from .recommendation import (
     get_recommendations, 
     get_most_booked_properties, 
@@ -1063,7 +1066,12 @@ def user_search_based_properties(request):
             primary_image = None
             primary_img_obj = prop.images.filter(is_primary=True).first()
             if primary_img_obj and primary_img_obj.image:
-                primary_image = request.build_absolute_uri(primary_img_obj.image.url)
+                # Build absolute URI manually
+                if hasattr(settings, 'RAILWAY_PUBLIC_DOMAIN') and settings.RAILWAY_PUBLIC_DOMAIN:
+                    base_url = f"https://{settings.RAILWAY_PUBLIC_DOMAIN}"
+                else:
+                    base_url = "https://web-production-6f713.up.railway.app"
+                primary_image = f"{base_url}{primary_img_obj.image.url}"
             
             serialized_properties.append({
                 'id': prop.id,
