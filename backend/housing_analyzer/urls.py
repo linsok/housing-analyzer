@@ -5,13 +5,44 @@ from django.contrib import admin
 from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
-from django.http import JsonResponse
+from django.http import JsonResponse, HttpResponse, Http404
 from django.views.decorators.http import require_http_methods
 from django.views.decorators.csrf import csrf_exempt
 from django.core.management import call_command
 import os
 from payments.health_check import health_check
 from payments.test_media import test_media_serving
+
+def serve_media(request, path):
+    """Serve media files in production"""
+    import mimetypes
+    from django.conf import settings
+    
+    # Construct the full file path
+    full_path = os.path.join(settings.MEDIA_ROOT, path)
+    
+    # Security check - ensure the path is within MEDIA_ROOT
+    if not os.path.abspath(full_path).startswith(os.path.abspath(settings.MEDIA_ROOT)):
+        raise Http404("File not found")
+    
+    # Check if file exists
+    if not os.path.exists(full_path) or not os.path.isfile(full_path):
+        raise Http404("File not found")
+    
+    # Determine MIME type
+    mime_type, _ = mimetypes.guess_type(full_path)
+    if mime_type is None:
+        mime_type = 'application/octet-stream'
+    
+    # Serve the file
+    with open(full_path, 'rb') as f:
+        response = HttpResponse(f.read(), content_type=mime_type)
+    
+    # Set cache headers
+    response['Cache-Control'] = 'public, max-age=3600'  # Cache for 1 hour
+    response['Access-Control-Allow-Origin'] = '*'  # Allow CORS for images
+    
+    return response
 
 def api_info(request):
     return JsonResponse({
@@ -287,4 +318,13 @@ urlpatterns = [
     path('api/reviews/', include('reviews.urls')),
     path('test-media-serving/', test_media_serving, name='test_media_serving'),
     path('health/', health_check, name='health_check'),
-] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT) + static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
+]
+
+# Add media serving for production
+if not settings.DEBUG:
+    urlpatterns += [
+        path('media/<path:path>', serve_media, name='serve_media'),
+    ]
+else:
+    # In development, use Django's built-in media serving
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

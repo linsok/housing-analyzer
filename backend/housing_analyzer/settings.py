@@ -185,7 +185,7 @@ STATIC_URL = 'static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 STATICFILES_DIRS = [
     os.path.join(BASE_DIR, 'custom_admin/static'),
-    os.path.join(BASE_DIR, 'media'),  # Add media directory for Whitenoise to serve
+    # Don't include media directory here - it should be served separately
 ]
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
@@ -209,12 +209,11 @@ MEDIA_ROOT = BASE_DIR / 'media'
 
 # Production media settings
 if not DEBUG:
-    # Use full domain for media URLs in production
+    # In production, use full URL for media files
     railway_domain = os.getenv('RAILWAY_PUBLIC_DOMAIN', 'web-production-6f713.up.railway.app')
     if railway_domain:
-        # Keep MEDIA_URL as '/media/' for Django's static serving
-        # The full URL will be constructed in the frontend
-        MEDIA_URL = '/media/'
+        # Use full URL for media files in production
+        MEDIA_URL = f'https://{railway_domain}/media/'
     else:
         # Fallback for Railway
         MEDIA_URL = '/media/'
