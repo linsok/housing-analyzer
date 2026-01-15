@@ -12,7 +12,9 @@ from .serializers import PaymentSerializer, QRCodeSerializer
 from .bakong_service import bakong_service
 from .enhanced_bakong_service import enhanced_bakong_service
 from .real_bakong_service import real_bakong_service
+from .fixed_bakong_service import fixed_bakong_service
 from .debug_bakong import debug_bakong_variables
+from .test_bakong_library import test_bakong_library
 
 
 class PaymentViewSet(viewsets.ModelViewSet):
@@ -174,8 +176,8 @@ class PaymentViewSet(viewsets.ModelViewSet):
                     status=status.HTTP_400_BAD_REQUEST
                 )
             
-            # Generate KHQR code using REAL Bakong service
-            khqr_data = real_bakong_service.generate_real_qr_code(
+            # Generate KHQR code using FIXED Bakong service
+            khqr_data = fixed_bakong_service.generate_fixed_qr_code(
                 amount=amount_decimal,
                 currency=currency,
                 property_title=property_title,
@@ -206,8 +208,8 @@ class PaymentViewSet(viewsets.ModelViewSet):
                     status=status.HTTP_400_BAD_REQUEST
                 )
             
-            # Check payment status using REAL Bakong service
-            status_info = real_bakong_service.check_real_payment_status(md5_hash)
+            # Check payment status using FIXED Bakong service
+            status_info = fixed_bakong_service.check_fixed_payment_status(md5_hash)
             
             return Response(status_info)
             
@@ -245,9 +247,15 @@ class PaymentViewSet(viewsets.ModelViewSet):
             payment_info = bakong_service.get_payment_details(md5_hash)
             
             return Response(payment_info)
-            
+    
+    @action(detail=False, methods=['get'])
+    def test_bakong_library(self, request):
+        """Test Bakong library with real token"""
+        try:
+            result = test_bakong_library()
+            return Response(result)
         except Exception as e:
             return Response(
-                {'error': f'Failed to get payment details: {str(e)}'},
+                {'error': f'Test failed: {str(e)}'},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
