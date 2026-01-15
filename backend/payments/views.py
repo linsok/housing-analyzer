@@ -262,3 +262,15 @@ class PaymentViewSet(viewsets.ModelViewSet):
                 {'error': f'Test failed: {str(e)}'},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
+    
+    @action(detail=False, methods=['get'])
+    def public_test_bakong(self, request):
+        """Public test endpoint for Bakong library"""
+        try:
+            result = test_bakong_library()
+            return Response(result)
+        except Exception as e:
+            return Response(
+                {'error': f'Test failed: {str(e)}'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
