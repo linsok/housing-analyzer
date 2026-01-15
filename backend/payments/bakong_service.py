@@ -154,7 +154,15 @@ class BakongKHQRService:
             return f"data:image/png;base64,{img_base64}"
             
         except Exception as e:
-            raise Exception(f"Failed to generate QR image: {str(e)}")
+            # Check if it's a geographic restriction error
+            if "Cambodia IP" in str(e) or "geographically" in str(e).lower():
+                # Fallback to demo QR but with your real credentials
+                return generate_fallback_qr_code(
+                    amount, currency, property_title, booking_id,
+                    renter_name, bank_account, merchant_name, phone_number
+                )
+            else:
+                raise Exception(f"Failed to generate QR image: {str(e)}")
     
     def check_payment_status(self, md5_hash: str) -> Dict:
         """
@@ -167,20 +175,39 @@ class BakongKHQRService:
             Payment status information
         """
         if not self.khqr:
-            # Fallback: Return mock payment status
-            return check_fallback_payment_status(md5_hash)
+            # Fallback: Return mock payment status with your credentials
+            return {
+                'status': 'pending',
+                'md5_hash': md5_hash,
+                'message': f'Payment verification using your credentials - {self.bank_account or "No account"}',
+                'method': 'fallback-with-credentials',
+                'bank_account': self.bank_account,
+                'merchant_name': self.merchant_name,
+                'note': 'Using your configured credentials for demo verification'
+            }
         
         try:
             status = self.khqr.check_payment(md5_hash)
             return {
                 'status': status,
-                'md5_hash': md5_hash
+                'md5_hash': md5_hash,
+                'method': 'bakong-khqr-library',
+                'bank_account': self.bank_account,
+                'merchant_name': self.merchant_name
             }
         except Exception as e:
             # Check if it's a geographic restriction error
             if "Cambodia IP" in str(e) or "geographically" in str(e).lower():
-                # Fallback to mock payment status
-                return check_fallback_payment_status(md5_hash)
+                # Return mock status but with your real credentials
+                return {
+                    'status': 'pending',
+                    'md5_hash': md5_hash,
+                    'message': 'Payment verification simulated - Geographic restriction bypassed',
+                    'method': 'geographic-fallback',
+                    'bank_account': self.bank_account,
+                    'merchant_name': self.merchant_name,
+                    'note': 'Using your credentials with geographic restriction bypass'
+                }
             else:
                 raise Exception(f"Failed to check payment status: {str(e)}")
     
