@@ -195,7 +195,7 @@ MEDIA_ROOT = BASE_DIR / 'media'
 # Production media settings
 if not DEBUG:
     # Use full domain for media URLs in production
-    railway_domain = os.getenv('RAILWAY_PUBLIC_DOMAIN', '')
+    railway_domain = os.getenv('RAILWAY_PUBLIC_DOMAIN', 'web-production-6f713.up.railway.app')
     if railway_domain:
         MEDIA_URL = f'https://{railway_domain}/media/'
     else:
@@ -247,6 +247,7 @@ CORS_ALLOWED_ORIGINS = [
     "https://housing-analyzer.vercel.app",
     "https://housing-analyzer-git-main-soklins-projects-7e089e19.vercel.app",
     "https://housing-analyzer-mfj5pg7fz-soklins-projects-7e089e19.vercel.app",
+    "https://housing-analyzer-a4gc5n8hu-soklins-projects-7e089e19.vercel.app",
     "https://*.vercel.app",
     "http://127.0.0.1:3000",
     "http://127.0.0.1:5173",
@@ -255,7 +256,10 @@ CORS_ALLOWED_ORIGINS = [
 CORS_ALLOW_CREDENTIALS = True
 
 # Allow all origins for development (remove in production)
-CORS_ALLOW_ALL_ORIGINS = True
+if DEBUG:
+    CORS_ALLOW_ALL_ORIGINS = True
+else:
+    CORS_ALLOW_ALL_ORIGINS = False
 
 # Security settings for production
 if not DEBUG:

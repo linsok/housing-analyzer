@@ -6,7 +6,7 @@ from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
 from django.http import JsonResponse
-from django.core.management import call_command
+from django.views.decorators.http import require_http_methods
 from django.views.decorators.csrf import csrf_exempt
 import os
 
