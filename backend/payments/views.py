@@ -10,6 +10,7 @@ from decimal import Decimal
 from .models import Payment, QRCode
 from .serializers import PaymentSerializer, QRCodeSerializer
 from .bakong_service import bakong_service
+from .enhanced_bakong_service import enhanced_bakong_service
 
 
 class PaymentViewSet(viewsets.ModelViewSet):
@@ -171,8 +172,8 @@ class PaymentViewSet(viewsets.ModelViewSet):
                     status=status.HTTP_400_BAD_REQUEST
                 )
             
-            # Generate KHQR code
-            khqr_data = bakong_service.generate_qr_code(
+            # Generate KHQR code using enhanced service
+            khqr_data = enhanced_bakong_service.generate_qr_code_enhanced(
                 amount=amount_decimal,
                 currency=currency,
                 property_title=property_title,
@@ -203,8 +204,8 @@ class PaymentViewSet(viewsets.ModelViewSet):
                     status=status.HTTP_400_BAD_REQUEST
                 )
             
-            # Check payment status
-            status_info = bakong_service.check_payment_status(md5_hash)
+            # Check payment status using enhanced service
+            status_info = enhanced_bakong_service.check_payment_status_enhanced(md5_hash)
             
             return Response(status_info)
             
