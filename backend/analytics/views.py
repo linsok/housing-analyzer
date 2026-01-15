@@ -24,7 +24,7 @@ from .recommendation import (
 @api_view(['GET'])
 @permission_classes([permissions.AllowAny])
 def rent_trends(request):
-    """Get rent trends by city and property type"""
+    """Get rent trends by city and property type - Fixed"""
     city = request.query_params.get('city')
     property_type = request.query_params.get('property_type')
     months = int(request.query_params.get('months', 6))
