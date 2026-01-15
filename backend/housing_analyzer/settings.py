@@ -12,10 +12,10 @@ import os
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = config('SECRET_KEY', default='django-insecure-your-secret-key-here-change-in-production')
+SECRET_KEY = config('SECRET_KEY', default='django-insecure-change-this-in-production-abc123def456')
 
 # SECURITY WARNING: keep debug false in production
-DEBUG = False  # Temporarily enabled for debugging
+DEBUG = config('DEBUG', default=False, cast=bool)
 
 # Automatically add Railway domain to allowed hosts
 railway_domain = os.getenv('RAILWAY_PUBLIC_DOMAIN', '')
