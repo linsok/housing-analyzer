@@ -185,8 +185,23 @@ STATIC_URL = 'static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 STATICFILES_DIRS = [
     os.path.join(BASE_DIR, 'custom_admin/static'),
+    os.path.join(BASE_DIR, 'media'),  # Add media directory for Whitenoise to serve
 ]
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+
+# Whitenoise configuration for media files in production
+if not DEBUG:
+    # Serve media files through Whitenoise in production
+    WHITENOISE_USE_FINDERS = True
+    WHITENOISE_IGNORE_FILES = [
+        '.*',
+        '*~',
+        '*.pyc',
+        '*.pyo',
+        '*.pyd',
+        '.DS_Store',
+        'Thumbs.db'
+    ]
 
 # Media files
 MEDIA_URL = '/media/'

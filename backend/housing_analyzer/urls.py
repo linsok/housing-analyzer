@@ -288,4 +288,4 @@ urlpatterns = [
     path('api/reviews/', include('reviews.urls')),
     path('test-media-serving/', test_media_serving, name='test_media_serving'),
     path('health/', health_check, name='health_check'),
-] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT) + static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
