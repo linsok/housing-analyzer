@@ -35,8 +35,7 @@ def run_migrations(request):
             call_command('makemigrations', interactive=False)
             call_command('migrate', interactive=False)
             call_command('collectstatic', interactive=False)
-            call_command('fix_property_images')
-            return JsonResponse({'status': 'success', 'message': 'Migrations and property image fixes completed successfully'})
+            return JsonResponse({'status': 'success', 'message': 'Migrations completed successfully'})
         except Exception as e:
             return JsonResponse({'status': 'error', 'message': str(e)})
     return JsonResponse({'status': 'error', 'message': 'POST request required'})
