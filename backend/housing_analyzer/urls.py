@@ -191,6 +191,24 @@ def test_media(request):
         return JsonResponse({'error': str(e)})
 
 @csrf_exempt
+def fix_property_images(request):
+    """Fix property image references to match existing media files"""
+    if request.method == 'POST':
+        try:
+            # Import and run the fix script
+            import sys
+            import os
+            sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+            
+            from fix_property_images import fix_property_images as run_fix
+            run_fix()
+            
+            return JsonResponse({'status': 'success', 'message': 'Property images fixed successfully'})
+        except Exception as e:
+            return JsonResponse({'status': 'error', 'message': str(e)})
+    return JsonResponse({'status': 'error', 'message': 'POST request required'})
+
+@csrf_exempt
 def upload_sample_images(request):
     """Upload sample property images for testing"""
     try:
@@ -258,6 +276,7 @@ urlpatterns = [
     path('debug-auth/', debug_auth, name='debug_auth'),
     path('debug-media/', debug_media, name='debug_media'),
     path('test-media/', test_media, name='test_media'),
+    path('fix-property-images/', fix_property_images, name='fix_property_images'),
     path('upload-sample-images/', upload_sample_images, name='upload_sample_images'),
     path('admin/', admin.site.urls),
     path('api/auth/', include('users.urls')),
