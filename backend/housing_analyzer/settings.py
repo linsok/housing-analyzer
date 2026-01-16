@@ -20,9 +20,9 @@ DEBUG = config('DEBUG', default=False, cast=bool)
 # Automatically add Railway domain to allowed hosts
 railway_domain = os.getenv('RAILWAY_PUBLIC_DOMAIN', '')
 if railway_domain:
-    ALLOWED_HOSTS = config('ALLOWED_HOSTS', default=f'localhost,127.0.0.1,{railway_domain}').split(',')
+    ALLOWED_HOSTS = config('ALLOWED_HOSTS', default=f'localhost,127.0.0.1,testserver,{railway_domain}').split(',')
 else:
-    ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='localhost,127.0.0.1').split(',')
+    ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='localhost,127.0.0.1,testserver').split(',')
 
 # Application definition
 INSTALLED_APPS = [
@@ -300,9 +300,9 @@ EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 EMAIL_HOST = config('EMAIL_HOST', default='smtp.gmail.com')
 EMAIL_PORT = config('EMAIL_PORT', default=587, cast=int)
 EMAIL_USE_TLS = config('EMAIL_USE_TLS', default=True, cast=bool)
-EMAIL_HOST_USER = config('EMAIL_HOST_USER', default='')
-EMAIL_HOST_PASSWORD = config('EMAIL_HOST_PASSWORD', default='')
-DEFAULT_FROM_EMAIL = config('DEFAULT_FROM_EMAIL', default='noreply@housinganalyzer.com')
+EMAIL_HOST_USER = config('EMAIL_HOST_USER', default='thoeunsoklin1209@gmail.com')
+EMAIL_HOST_PASSWORD = config('EMAIL_HOST_PASSWORD', default='thoeunsoklin0977569023@lin')
+DEFAULT_FROM_EMAIL = config('DEFAULT_FROM_EMAIL', default='thoeunsoklin1209@gmail.com')
 
 # Payment settings
 STRIPE_PUBLIC_KEY = config('STRIPE_PUBLIC_KEY', default='')

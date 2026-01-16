@@ -109,7 +109,7 @@ group05support@housinganalyzer.com
             logger.info(f"EMAIL_USE_TLS: {getattr(settings, 'EMAIL_USE_TLS', 'NOT SET')}")
             
             try:
-                # Send email with explicit credentials to avoid environment variable issues
+                # Send email with settings from configuration
                 send_mail(
                     subject=subject,
                     message=text_message,
@@ -117,8 +117,8 @@ group05support@housinganalyzer.com
                     recipient_list=[renter_email],
                     html_message=html_message,
                     fail_silently=False,
-                    auth_user='thoeunsoklin1209@gmail.com',
-                    auth_password='ddlt mrnv fleo qoyy'
+                    auth_user=settings.EMAIL_HOST_USER,
+                    auth_password=settings.EMAIL_HOST_PASSWORD
                 )
                 logger.info(f"Booking completion email sent successfully to {renter_email} for booking {booking.id}")
                 return True
@@ -221,7 +221,7 @@ group05support@housinganalyzer.com
             logger.debug(f"Email subject: {subject}")
             
             try:
-                # Send email with explicit credentials to avoid environment variable issues
+                # Send email with settings from configuration
                 send_mail(
                     subject=subject,
                     message=text_message,
@@ -229,8 +229,8 @@ group05support@housinganalyzer.com
                     recipient_list=[renter_email],
                     html_message=html_message,
                     fail_silently=False,
-                    auth_user='thoeunsoklin1209@gmail.com',
-                    auth_password='ddlt mrnv fleo qoyy'
+                    auth_user=settings.EMAIL_HOST_USER,
+                    auth_password=settings.EMAIL_HOST_PASSWORD
                 )
                 logger.info(f"Checkout notification email sent successfully to {renter_email} for booking {booking.id}")
                 return True
@@ -402,7 +402,7 @@ group05support@housinganalyzer.com
 +855 97 756 9023
             """.strip()
             
-            # Send email with explicit credentials to avoid environment variable issues
+            # Send email with settings from configuration
             send_mail(
                 subject=subject,
                 message=text_message,
@@ -410,8 +410,8 @@ group05support@housinganalyzer.com
                 recipient_list=[renter_email],
                 html_message=html_message,
                 fail_silently=False,
-                auth_user='thoeunsoklin1209@gmail.com',
-                auth_password='ddlt mrnv fleo qoyy'
+                auth_user=settings.EMAIL_HOST_USER,
+                auth_password=settings.EMAIL_HOST_PASSWORD
             )
             
             logger.info(f"Booking confirmation email sent to {renter_email} for booking {booking.id}")
