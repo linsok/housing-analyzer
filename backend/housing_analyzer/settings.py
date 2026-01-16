@@ -308,7 +308,7 @@ else:
     CSRF_ALLOW_ALL_ORIGINS = False
 
 # Email settings (configure for production)
-EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'  # Shows OTP in logs
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'  
 # EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'  # Real email (blocked by Gmail)
 EMAIL_HOST = config('EMAIL_HOST', default='smtp.gmail.com')
 EMAIL_PORT = config('EMAIL_PORT', default=587, cast=int)
