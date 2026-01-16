@@ -3,7 +3,7 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import AllowAny, IsAuthenticated, IsAdminUser
 from rest_framework.response import Response
 from django.db.models import Q, Avg, Count, Sum, F, FloatField, IntegerField, Min, Max
-from django.db.models.functions import Cast, Coalesce, TruncMonth
+from django.db.models.functions import Cast, Coalesce, TruncMonth, ExtractYear, ExtractMonth
 from django.utils import timezone
 from datetime import timedelta, datetime
 from dateutil.relativedelta import relativedelta
