@@ -196,6 +196,8 @@ CORS_ALLOWED_ORIGINS = [
     "https://housing-analyzer.vercel.app",
     "http://localhost:3000",
     "http://localhost:5173",
+    "http://127.0.0.1:3000",
+    "http://127.0.0.1:5173",
 ]
 CORS_ALLOWED_ORIGIN_REGEXES = [r"^https://.*\.vercel\.app$"]
 CORS_ALLOW_CREDENTIALS = True
@@ -206,6 +208,7 @@ if DEBUG:
 # CSRF settings
 CSRF_TRUSTED_ORIGINS = [
     "https://housing-analyzer.vercel.app",
+    "https://web-production-6f713.up.railway.app",
     f"https://{RAILWAY_DOMAIN}" if RAILWAY_DOMAIN else "",
 ]
 CSRF_COOKIE_SECURE = False
