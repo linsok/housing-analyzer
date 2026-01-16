@@ -18,9 +18,9 @@ SECRET_KEY = config('SECRET_KEY', default='django-insecure-change-this-in-produc
 DEBUG = config('DEBUG', default=False, cast=bool)
 
 # Automatically add Railway domain to allowed hosts
-railway_domain = os.getenv('RAILWAY_PUBLIC_DOMAIN', '')
-if railway_domain:
-    ALLOWED_HOSTS = config('ALLOWED_HOSTS', default=f'localhost,127.0.0.1,testserver,{railway_domain}').split(',')
+RAILWAY_DOMAIN = os.getenv('RAILWAY_PUBLIC_DOMAIN', '')
+if RAILWAY_DOMAIN:
+    ALLOWED_HOSTS = config('ALLOWED_HOSTS', default=f'localhost,127.0.0.1,testserver,{RAILWAY_DOMAIN}').split(',')
 else:
     ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='localhost,127.0.0.1,testserver').split(',')
 
@@ -32,13 +32,13 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    
+
     # Third party apps
     'rest_framework',
     'rest_framework_simplejwt',
     'corsheaders',
     'django_filters',
-    
+
     # Local apps
     'users',
     'properties',
@@ -49,11 +49,12 @@ INSTALLED_APPS = [
     'custom_admin.apps.CustomAdminConfig',  # Custom admin theme
 ]
 
+# Middleware (CORS MUST be above CommonMiddleware)
 MIDDLEWARE = [
+    'corsheaders.middleware.CorsMiddleware',  # MUST be first for CORS
+    'django.middleware.common.CommonMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
-    'corsheaders.middleware.CorsMiddleware',
-    'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
@@ -82,14 +83,10 @@ TEMPLATES = [
 WSGI_APPLICATION = 'housing_analyzer.wsgi.application'
 
 # Database Configuration
-# Check if running on Railway (production)
-import os
-
-# Use PyMySQL as MySQL backend
 import pymysql
 pymysql.install_as_MySQLdb()
 
-if os.getenv('RAILWAY_ENVIRONMENT') or os.getenv('RAILWAY_PUBLIC_DOMAIN'):
+if os.getenv('RAILWAY_ENVIRONMENT') or RAILWAY_DOMAIN:
     # Railway MySQL Database Configuration
     database_url = os.getenv('DATABASE_URL') or os.getenv('MYSQL_URL')
     if database_url:
@@ -97,7 +94,7 @@ if os.getenv('RAILWAY_ENVIRONMENT') or os.getenv('RAILWAY_PUBLIC_DOMAIN'):
             'default': dj_database_url.parse(database_url)
         }
     else:
-        # Fallback configuration using Railway environment variables
+        # Fallback
         DATABASES = {
             'default': {
                 'ENGINE': 'django.db.backends.mysql',
@@ -112,15 +109,15 @@ if os.getenv('RAILWAY_ENVIRONMENT') or os.getenv('RAILWAY_PUBLIC_DOMAIN'):
             }
         }
 else:
-    # Local MySQL Database Configuration (for development)
+    # Local MySQL for development
     DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.mysql',
-            'NAME': 'housing_analyzer',  # Database name
-            'USER': 'root',             # MySQL username
-            'PASSWORD': 'Soklin0976193630',  # MySQL password
-            'HOST': 'localhost',        # Database host
-            'PORT': '3306',             # MySQL port (default is 3306)
+            'NAME': 'housing_analyzer',
+            'USER': 'root',
+            'PASSWORD': 'Soklin0976193630',
+            'HOST': 'localhost',
+            'PORT': '3306',
             'OPTIONS': {
                 'init_command': "SET sql_mode='STRICT_TRANS_TABLES', time_zone='+07:00'",
                 'charset': 'utf8mb4',
@@ -134,43 +131,12 @@ else:
         }
     }
 
-# Option 2: SQLite (Simple, for development only)
-# DATABASES = {
-#     'default': {
-#         'ENGINE': 'django.db.backends.sqlite3',
-#         'NAME': BASE_DIR / 'db.sqlite3',
-#     }
-# }
-
-# Option 3: MySQL (requires MySQL server and mysqlclient package)
-# DATABASES = {
-#     'default': {
-#         'ENGINE': 'django.db.backends.mysql',
-#         'NAME': config('DB_NAME', default='housing_analyzer'),
-#         'USER': config('DB_USER', default='root'),
-#         'PASSWORD': config('DB_PASSWORD', default=''),
-#         'HOST': config('DB_HOST', default='localhost'),
-#         'PORT': config('DB_PORT', default='3306'),
-#         'OPTIONS': {
-#             'init_command': "SET sql_mode='STRICT_TRANS_TABLES'",
-#         }
-#     }
-# }
-
 # Password validation
 AUTH_PASSWORD_VALIDATORS = [
-    {
-        'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator',
-    },
-    {
-        'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator',
-    },
-    {
-        'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator',
-    },
-    {
-        'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator',
-    },
+    {'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator'},
+    {'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator'},
+    {'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator'},
+    {'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator'},
 ]
 
 # Internationalization
@@ -179,61 +145,31 @@ TIME_ZONE = 'Asia/Phnom_Penh'
 USE_I18N = True
 USE_TZ = True
 
-# Static files (CSS, JavaScript, Images)
+# Static files
 STATIC_URL = 'static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
-STATICFILES_DIRS = [
-    os.path.join(BASE_DIR, 'custom_admin/static'),
-    # Don't include media directory here - it should be served separately
-]
+STATICFILES_DIRS = [os.path.join(BASE_DIR, 'custom_admin/static')]
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
-
-# Whitenoise configuration for media files in production
-if not DEBUG:
-    # Serve media files through Whitenoise in production
-    WHITENOISE_USE_FINDERS = True
-    WHITENOISE_IGNORE_FILES = [
-        '.*',
-        '*~',
-        '*.pyc',
-        '*.pyo',
-        '*.pyd',
-        '.DS_Store',
-        'Thumbs.db'
-    ]
 
 # Media files
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
+if not DEBUG and RAILWAY_DOMAIN:
+    MEDIA_URL = f'https://{RAILWAY_DOMAIN}/media/'
 
-# Production media settings
-if not DEBUG:
-    # In production, use full URL for media files
-    railway_domain = os.getenv('RAILWAY_PUBLIC_DOMAIN', 'web-production-6f713.up.railway.app')
-    if railway_domain:
-        # Use full URL for media files in production
-        MEDIA_URL = f'https://{railway_domain}/media/'
-    else:
-        # Fallback for Railway
-        MEDIA_URL = '/media/'
-else:
-    MEDIA_URL = '/media/'
-
-# Default primary key field type
+# Default primary key
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # Custom User Model
 AUTH_USER_MODEL = 'users.User'
 
-# REST Framework settings
+# REST Framework
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
         'rest_framework_simplejwt.authentication.JWTAuthentication',
         'rest_framework.authentication.SessionAuthentication',
     ),
-    'DEFAULT_PERMISSION_CLASSES': (
-        'rest_framework.permissions.IsAuthenticated',
-    ),
+    'DEFAULT_PERMISSION_CLASSES': ('rest_framework.permissions.IsAuthenticated',),
     'DEFAULT_FILTER_BACKENDS': (
         'django_filters.rest_framework.DjangoFilterBackend',
         'rest_framework.filters.SearchFilter',
@@ -243,7 +179,7 @@ REST_FRAMEWORK = {
     'PAGE_SIZE': 12,
 }
 
-# JWT Settings
+# JWT
 SIMPLE_JWT = {
     'ACCESS_TOKEN_LIFETIME': timedelta(days=1),
     'REFRESH_TOKEN_LIFETIME': timedelta(days=7),
@@ -257,83 +193,46 @@ SIMPLE_JWT = {
 
 # CORS settings
 CORS_ALLOWED_ORIGINS = [
+    "https://housing-analyzer.vercel.app",
     "http://localhost:3000",
     "http://localhost:5173",
-    "https://housing-analyzer.vercel.app",
-    "https://housing-analyzer-git-main-soklins-projects-7e089e19.vercel.app",
-    "https://housing-analyzer-mfj5pg7fz-soklins-projects-7e089e19.vercel.app",
-    "https://housing-analyzer-a4gc5n8hu-soklins-projects-7e089e19.vercel.app",
-    "http://127.0.0.1:3000",
-    "http://127.0.0.1:5173",
 ]
-
-# Regex for all vercel deployments
-CORS_ALLOWED_ORIGIN_REGEXES = [
-    r"^https://.*\.vercel\.app$",
-]
-
+CORS_ALLOWED_ORIGIN_REGEXES = [r"^https://.*\.vercel\.app$"]
 CORS_ALLOW_CREDENTIALS = True
 
-# Allow all origins for development (remove in production)
 if DEBUG:
     CORS_ALLOW_ALL_ORIGINS = True
-else:
-    CORS_ALLOW_ALL_ORIGINS = False
-
-# Security settings for production
-if not DEBUG:
-    SECURE_SSL_REDIRECT = False  # Disabled to prevent redirect loop on Railway
-    SESSION_COOKIE_SECURE = False  # Disabled for Railway
-    CSRF_COOKIE_SECURE = False  # Disabled for Railway
-    SECURE_BROWSER_XSS_FILTER = True
-    SECURE_CONTENT_TYPE_NOSNIFF = True
-    X_FRAME_OPTIONS = 'DENY'
-
-# URL settings
-APPEND_SLASH = False  # Disable automatic slash appending
 
 # CSRF settings
-CSRF_COOKIE_SECURE = False  # Disabled for Railway
-CSRF_COOKIE_HTTPONLY = False
 CSRF_TRUSTED_ORIGINS = [
-    "https://web-production-6f713.up.railway.app",
     "https://housing-analyzer.vercel.app",
-    "https://*.vercel.app",
+    f"https://{RAILWAY_DOMAIN}" if RAILWAY_DOMAIN else "",
 ]
-
-# Allow all origins only for development
+CSRF_COOKIE_SECURE = False
+CSRF_COOKIE_HTTPONLY = False
 if DEBUG:
     CSRF_ALLOW_ALL_ORIGINS = True
-else:
-    CSRF_ALLOW_ALL_ORIGINS = False
 
-# Email settings (configure for production)
-EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'  
-# EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'  # Real email (blocked by Gmail)
+# Email settings (Gmail SMTP)
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 EMAIL_HOST = config('EMAIL_HOST', default='smtp.gmail.com')
 EMAIL_PORT = config('EMAIL_PORT', default=587, cast=int)
 EMAIL_USE_TLS = config('EMAIL_USE_TLS', default=True, cast=bool)
 EMAIL_HOST_USER = config('EMAIL_HOST_USER', default='thoeunsoklin1209@gmail.com')
-EMAIL_HOST_PASSWORD = config('EMAIL_HOST_PASSWORD', default='yjma gzdu pfog vkkc')
+EMAIL_HOST_PASSWORD = config('EMAIL_HOST_PASSWORD', default='yjma gzdu pfog vkkc')  # App password
 DEFAULT_FROM_EMAIL = config('DEFAULT_FROM_EMAIL', default='thoeunsoklin1209@gmail.com')
 
-# Payment settings
+# Payment & API keys
 STRIPE_PUBLIC_KEY = config('STRIPE_PUBLIC_KEY', default='')
 STRIPE_SECRET_KEY = config('STRIPE_SECRET_KEY', default='')
-
-# Google Maps API
 GOOGLE_MAPS_API_KEY = config('GOOGLE_MAPS_API_KEY', default='')
-
-# Bakong KHQR Payment Configuration
-BAKONG_API_TOKEN = config('BAKONG_API_TOKEN', default='')
-BAKONG_BANK_ACCOUNT = config('BAKONG_BANK_ACCOUNT', default='')
+BAKONG_API_TOKEN = config('BAKONG_API_TOKEN', default='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJkYXRhIjp7ImlkIjoiMjNiZGQ3NmIwNDgzNDAyYiJ9LCJpYXQiOjE3NjY0OTY0NDMsImV4cCI6MTc3NDI3MjQ0M30.ZjHJURnAXqQEuwsiqb9ltbF-xA0sgqaWfevdatnyjUk')
+BAKONG_BANK_ACCOUNT = config('BAKONG_BANK_ACCOUNT', default='sok_lin@bkrt')
 BAKONG_MERCHANT_NAME = config('BAKONG_MERCHANT_NAME', default='Housing Analyzer')
 BAKONG_MERCHANT_CITY = config('BAKONG_MERCHANT_CITY', default='Phnom Penh')
-BAKONG_PHONE_NUMBER = config('BAKONG_PHONE_NUMBER', default='')
+BAKONG_PHONE_NUMBER = config('BAKONG_PHONE_NUMBER', default='855977569023')
 
-
-
-# Add this at the end of settings.py
+# Debug: show email config on start
 print("\n=== Email Configuration ===")
 print(f"EMAIL_BACKEND: {EMAIL_BACKEND}")
 print(f"EMAIL_HOST: {EMAIL_HOST}")
