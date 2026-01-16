@@ -52,7 +52,6 @@ INSTALLED_APPS = [
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
-    'housing_analyzer.cors_middleware.CustomCORSMiddleware',
     'corsheaders.middleware.CorsMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -264,9 +263,13 @@ CORS_ALLOWED_ORIGINS = [
     "https://housing-analyzer-git-main-soklins-projects-7e089e19.vercel.app",
     "https://housing-analyzer-mfj5pg7fz-soklins-projects-7e089e19.vercel.app",
     "https://housing-analyzer-a4gc5n8hu-soklins-projects-7e089e19.vercel.app",
-    "https://*.vercel.app",
     "http://127.0.0.1:3000",
     "http://127.0.0.1:5173",
+]
+
+# Regex for all vercel deployments
+CORS_ALLOWED_ORIGIN_REGEXES = [
+    r"^https://.*\.vercel\.app$",
 ]
 
 CORS_ALLOW_CREDENTIALS = True
@@ -292,8 +295,17 @@ APPEND_SLASH = False  # Disable automatic slash appending
 # CSRF settings
 CSRF_COOKIE_SECURE = False  # Disabled for Railway
 CSRF_COOKIE_HTTPONLY = False
-CSRF_TRUSTED_ORIGINS = ["https://web-production-6f713.up.railway.app"]
-CSRF_ALLOW_ALL_ORIGINS = True  # Allow all origins for development
+CSRF_TRUSTED_ORIGINS = [
+    "https://web-production-6f713.up.railway.app",
+    "https://housing-analyzer.vercel.app",
+    "https://*.vercel.app",
+]
+
+# Allow all origins only for development
+if DEBUG:
+    CSRF_ALLOW_ALL_ORIGINS = True
+else:
+    CSRF_ALLOW_ALL_ORIGINS = False
 
 # Email settings (configure for production)
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
@@ -301,7 +313,7 @@ EMAIL_HOST = config('EMAIL_HOST', default='smtp.gmail.com')
 EMAIL_PORT = config('EMAIL_PORT', default=587, cast=int)
 EMAIL_USE_TLS = config('EMAIL_USE_TLS', default=True, cast=bool)
 EMAIL_HOST_USER = config('EMAIL_HOST_USER', default='thoeunsoklin1209@gmail.com')
-EMAIL_HOST_PASSWORD = config('EMAIL_HOST_PASSWORD', default='thoeunsoklin0977569023@lin')
+EMAIL_HOST_PASSWORD = config('EMAIL_HOST_PASSWORD', default='')  # No default for security
 DEFAULT_FROM_EMAIL = config('DEFAULT_FROM_EMAIL', default='thoeunsoklin1209@gmail.com')
 
 # Payment settings
