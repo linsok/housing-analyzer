@@ -153,34 +153,36 @@ class UserViewSet(viewsets.ModelViewSet):
         return Response(serializer.data)
 
 
-from django.core.exceptions import MultipleObjectsReturned
-
-@action(detail=False, methods=['post'])
-def forgot_password(self, request):
-    """Send OTP for password reset"""
-    try:
-        serializer = PasswordResetRequestSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        
-        email = serializer.validated_data['email']
-        
-        # Use filter().first() instead of get()
-        user = User.objects.filter(email=email).first()
-        
-        if not user:
-            # Return success message anyway for security
-            return Response({
-                'message': 'If an account with this email exists, an OTP has been sent.'
-            })
-        
-        # Generate OTP
-        otp = PasswordResetOTP.generate_otp(user)
-        
-        # Send OTP email
+class PublicAuthViewSet(viewsets.GenericViewSet):
+    """ViewSet for public authentication endpoints (no auth required)"""
+    permission_classes = [permissions.AllowAny]
+    
+    @action(detail=False, methods=['post'])
+    def forgot_password(self, request):
+        """Send OTP for password reset"""
         try:
-            send_mail(
-                subject='Password Reset OTP - Housing Analyzer',
-                message=f'''
+            serializer = PasswordResetRequestSerializer(data=request.data)
+            serializer.is_valid(raise_exception=True)
+            
+            email = serializer.validated_data['email']
+            
+            # Use filter().first() instead of get()
+            user = User.objects.filter(email=email).first()
+            
+            if not user:
+                # Return success message anyway for security
+                return Response({
+                    'message': 'If an account with this email exists, an OTP has been sent.'
+                })
+            
+            # Generate OTP
+            otp = PasswordResetOTP.generate_otp(user)
+            
+            # Send OTP email
+            try:
+                send_mail(
+                    subject='Password Reset OTP - Housing Analyzer',
+                    message=f'''
 Hello {user.first_name or user.username},
 
 You requested a password reset for your Housing Analyzer account.
@@ -193,30 +195,30 @@ If you didn't request this password reset, please ignore this email.
 
 Thank you,
 Housing Analyzer Team
-                ''',
-                from_email=settings.DEFAULT_FROM_EMAIL,
-                recipient_list=[email],
-                fail_silently=False,
-                auth_user=settings.EMAIL_HOST_USER,
-                auth_password=settings.EMAIL_HOST_PASSWORD,
-            )
-            
-            return Response({
-                'message': 'OTP sent successfully to your email'
-            })
-            
+                    ''',
+                    from_email=settings.DEFAULT_FROM_EMAIL,
+                    recipient_list=[email],
+                    fail_silently=False,
+                    auth_user=settings.EMAIL_HOST_USER,
+                    auth_password=settings.EMAIL_HOST_PASSWORD,
+                )
+                
+                return Response({
+                    'message': 'OTP sent successfully to your email'
+                })
+                
+            except Exception as e:
+                print(f"Email sending error: {e}")
+                # Return success message anyway to avoid leaking info
+                return Response({
+                    'message': 'If an account with this email exists, an OTP has been sent.'
+                })
+                
         except Exception as e:
-            print(f"Email sending error: {e}")
-            # Return success message anyway to avoid leaking info
+            print(f"Forgot password error: {str(e)}")
             return Response({
-                'message': 'If an account with this email exists, an OTP has been sent.'
-            })
-            
-    except Exception as e:
-        print(f"Forgot password error: {str(e)}")
-        return Response({
-            'error': 'An error occurred while processing your request'
-        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+                'error': 'An error occurred while processing your request'
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     
     @action(detail=False, methods=['post'])
