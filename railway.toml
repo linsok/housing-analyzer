@@ -5,9 +5,21 @@ builder = "nixpacks"
 startCommand = "cd backend && python deploy_media.py && python manage.py migrate --no-input && python manage.py collectstatic --no-input && gunicorn housing_analyzer.wsgi:application --bind 0.0.0.0:$PORT --workers 3"
 restartPolicyType = "on_failure"
 restartPolicyMaxRetries = 10
+healthcheckPath = "/api/health/"
+healthcheckTimeout = 100
+restartPolicyType = "on_failure"
 
 [[services]]
-name = "web"
-source = "."
+name = "api"
+source = "backend"
+
 [services.variables]
 PYTHON_VERSION = "3.11"
+
+# Email configuration for Railway
+EMAIL_HOST = "smtp.gmail.com"
+EMAIL_PORT = "587"
+EMAIL_USE_TLS = "true"
+EMAIL_HOST_USER = "thoeunsoklin1209@gmail.com"
+EMAIL_HOST_PASSWORD = "yjma gzdu pfog vkkc"
+DEFAULT_FROM_EMAIL = "thoeunsoklin1209@gmail.com"
