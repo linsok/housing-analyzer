@@ -1,5 +1,7 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
+from django.contrib import messages
+from django.contrib.auth import get_user_model
 from .models import User, UserPreference
 
 # Import admin class after models to avoid circular imports
@@ -16,6 +18,17 @@ class UserAdmin(BaseUserAdmin):
     list_display = ['username', 'email', 'role', 'verification_status', 'trust_score', 'created_at']
     list_filter = ['role', 'verification_status', 'created_at']
     search_fields = ['username', 'email', 'first_name', 'last_name']
+    actions = ['reset_password']
+    
+    def reset_password(self, request, queryset):
+        """Reset password for selected users to 'password123'"""
+        count = queryset.count()
+        for user in queryset:
+            user.set_password('password123')
+            user.save()
+        
+        self.message_user(request, f'Password reset to "password123" for {count} user(s).', messages.SUCCESS)
+    reset_password.short_description = "Reset password to 'password123'"
     
     fieldsets = BaseUserAdmin.fieldsets + (
         ('Role & Verification', {
